@@ -1,0 +1,57 @@
+{
+    "name": "ziming/laravel-myinfo-sg",
+    "description": "Laravel Package for Singapore MyInfo",
+    "keywords": [
+        "ziming",
+        "laravel-myinfo-sg"
+    ],
+    "homepage": "https://github.com/ziming/laravel-myinfo-sg",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Ziming",
+            "email": "ziming.opensource@gmail.com",
+            "role": "Package Uploader"
+        }
+    ],
+    "require": {
+        "php": "^7.1",
+        "ext-json": "*",
+        "ext-openssl": "*",
+        "guzzlehttp/guzzle": "^6.3",
+        "illuminate/support": "5.8.*",
+        "web-token/jwt-framework": "^1.3"
+    },
+    "require-dev": {
+        "orchestra/testbench": "3.8.*",
+        "phpunit/phpunit": "^7.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ziming\\LaravelMyinfoSg\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Ziming\\LaravelMyinfoSg\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Ziming\\LaravelMyinfoSg\\LaravelMyinfoSgServiceProvider"
+            ],
+            "aliases": {
+                "LaravelMyinfoSg": "Ziming\\LaravelMyinfoSg\\LaravelMyinfoSgFacade"
+            }
+        }
+    }
+}
