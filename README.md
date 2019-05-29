@@ -5,9 +5,10 @@
 [![Quality Score](https://img.shields.io/scrutinizer/g/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://scrutinizer-ci.com/g/ziming/laravel-myinfo-sg)
 [![Total Downloads](https://img.shields.io/packagist/dt/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
 
-A PHP Laravel Package for MyInfo Singapore. Although it should work, the core API is not fully stable yet so use it at your own **risk**.
+A PHP Laravel Package for MyInfo Singapore. Although it does work from my own testing, the core API is not fully stable yet 
+so use it at your own **risk**.
 
-Tests will be welcomed.
+Tests will be welcomed. Now would also be the best time to suggest changes before 1.0
 
 ## Installation
 
@@ -27,11 +28,13 @@ Change them to the values you are given for your app.
 MYINFO_APP_CLIENT_ID=STG2-MYINFO-SELF-TEST
 MYINFO_APP_CLIENT_SECRET=44d953c796cccebcec9bdc826852857ab412fbe2
 MYINFO_APP_REDIRECT_URI=http://localhost:3001/callback
+MYINFO_APP_PURPOSE="demonstrating MyInfo APIs"
 MYINFO_APP_ATTRIBUTES=uinfin,name,sex,race,nationality,dob,email,mobileno,regadd,housingtype,hdbtype,marital,edulevel,noa-basic,ownerprivate,cpfcontributions,cpfbalances
 
-# Absolute Path starting with file://
-MYINFO_APP_SIGNATURE_CERT_PRIVATE_KEY=file://Users/your-username/your-laravel-app/storage/myinfo-ssl/stg-demoapp-client-privatekey-2018.pem
-MYINFO_SIGNATURE_CERT_PUBLIC_CERT=file://Users/your-username/your-laravel-app/storage/myinfo-ssl/stg-auth-signing-public.pem
+# Absolute Path starting with file:// 
+# On Windows it might be different
+MYINFO_APP_SIGNATURE_CERT_PRIVATE_KEY=file:///Users/your-username/your-laravel-app/storage/myinfo-ssl/stg-demoapp-client-privatekey-2018.pem
+MYINFO_SIGNATURE_CERT_PUBLIC_CERT=file:///Users/your-username/your-laravel-app/storage/myinfo-ssl/stg-auth-signing-public.pem
 
 # SANDBOX ENVIRONMENT (no PKI digital signature)
 MYINFO_AUTH_LEVEL=L0
