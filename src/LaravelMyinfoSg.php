@@ -176,9 +176,9 @@ class LaravelMyinfoSg
                     throw new InvalidDataOrSignatureForPersonDataException();
                 }
 
-                return response()->json([
+                return [
                     'data' => $decodedPersonData,
-                ]);
+                ];
             }
 
         }
