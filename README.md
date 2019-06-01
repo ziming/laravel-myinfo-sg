@@ -5,10 +5,15 @@
 [![Quality Score](https://img.shields.io/scrutinizer/g/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://scrutinizer-ci.com/g/ziming/laravel-myinfo-sg)
 [![Total Downloads](https://img.shields.io/packagist/dt/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
 
-A PHP Laravel Package for MyInfo Singapore. Although it does work from my own testing, the core API is not fully stable yet 
+A PHP Laravel Package for MyInfo Singapore. 
+
+Although it does work from my own testing, the core API is not fully stable yet 
 so use it at your own **risk**.
 
 Tests will be welcomed. Now would also be the best time to suggest changes before 1.0
+
+Hope this package help those who struggles to translate the official nodejs demo app to its PHP equivalent. 
+As it took me a long time too
 
 ## Installation
 
@@ -146,7 +151,7 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
-        // Example of an override.
+        // Example of an override. You may override it via Service Container binding too
         if ($exception instanceof AccessTokenNotFoundException && $request->wantsJson()) {
             return response()->json([
                 'message' => 'Access Token is missing'
@@ -169,7 +174,7 @@ use Ziming\LaravelMyinfoSg\Exceptions\MyinfoPersonDataNotFoundException;
 use Ziming\LaravelMyinfoSg\Exceptions\UinfinNotFoundException;
 ```
 
-Lastly, if you prefer to write your own controllers, you may make use of `LaravelMyinfoSgFacade` to generate the
+Lastly, if you prefer to write your own controllers, you may make use of `LaravelMyinfoSgFacade` or `LaravelMyinfoSg` to generate the
 authorisation api uri (The redirect to Singpass link) and to fetch MyInfo Person Data. Examples are shown below
 
 ```php
@@ -183,6 +188,7 @@ return redirect(LaravelMyinfoSg::generateAuthoriseApiUri());
 
 ```php
 <?php
+use Ziming\LaravelMyinfoSg\LaravelMyinfoSgFacade as LaravelMyinfoSg;
 
 // Get the Myinfo person data in an array with 'data' key
 $personData = LaravelMyinfoSg::getMyinfoPersonData();

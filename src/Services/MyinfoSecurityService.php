@@ -108,7 +108,7 @@ class MyinfoSecurityService
 
         $signature = base64_encode($signature);
 
-        $strApexHeader = "PKI_SIGN timestamp=\"" . $timestamp . // Defaults to 1st part of incoming request hostname
+        $strApexHeader = "PKI_SIGN timestamp=\"" . $timestamp .
             "\",nonce=\"" . $nonce .
             "\",app_id=\"" . $appId .
             "\",signature_method=\"RS256\"" .
