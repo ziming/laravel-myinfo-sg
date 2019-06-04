@@ -15,7 +15,10 @@ use Jose\Component\Signature\Serializer\CompactSerializer;
 use Jose\Component\Signature\Serializer\JWSSerializerManager;
 use Jose\Component\Encryption\Serializer\JWESerializerManager;
 
-class MyinfoSecurityService
+/*
+ * @internal
+ */
+final class MyinfoSecurityService
 {
 
     /**
