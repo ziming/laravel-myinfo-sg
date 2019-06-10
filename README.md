@@ -87,7 +87,7 @@ use Ziming\LaravelMyinfoSg\Http\Controllers\CallAuthoriseApiController;
 use Ziming\LaravelMyinfoSg\Http\Controllers\GetMyinfoPersonDataController;
 use Illuminate\Support\Facades\Route;
 
-Route::get(config('/go-singpass'), CallAuthoriseApiController::class)
+Route::post(config('/go-singpass'), CallAuthoriseApiController::class)
 ->name('myinfo.singpass')
 ->middleware(['auth']); // You may add your middlewares here
 

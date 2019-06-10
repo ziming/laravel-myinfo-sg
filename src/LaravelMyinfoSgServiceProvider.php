@@ -56,7 +56,7 @@ class LaravelMyinfoSgServiceProvider extends ServiceProvider
             return;
         }
 
-        Route::get(config('laravel-myinfo-sg.call_authorise_api_uri'), CallAuthoriseApiController::class)->name('myinfo.singpass');
+        Route::post(config('laravel-myinfo-sg.call_authorise_api_uri'), CallAuthoriseApiController::class)->name('myinfo.singpass');
         Route::post(config('laravel-myinfo-sg.get_myinfo_person_data_uri'), GetMyinfoPersonDataController::class)->name('myinfo.person');
 
     }
