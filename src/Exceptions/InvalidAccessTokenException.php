@@ -2,13 +2,11 @@
 
 namespace Ziming\LaravelMyinfoSg\Exceptions;
 
-
 use Illuminate\Http\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class InvalidAccessTokenException extends HttpException
 {
-
     /**
      * InvalidAccessTokenException constructor.
      * @param int $statusCode - Default is 400, Bad Request

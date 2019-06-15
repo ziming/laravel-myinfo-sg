@@ -10,7 +10,6 @@ return [
     'attributes'    => env('MYINFO_APP_ATTRIBUTES', 'uinfin,name,sex,race,nationality,dob,email,mobileno,regadd,housingtype,hdbtype,marital,edulevel,noa-basic,ownerprivate,cpfcontributions,cpfbalances'),
     'purpose'       => env('MYINFO_APP_PURPOSE', 'demonstrating MyInfo APIs'),
 
-
     'public_cert_path' => env('MYINFO_SIGNATURE_CERT_PUBLIC_CERT'),
     'private_key_path' => env('MYINFO_APP_SIGNATURE_CERT_PRIVATE_KEY'),
 

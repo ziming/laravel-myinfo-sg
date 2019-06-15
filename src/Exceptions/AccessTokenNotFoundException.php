@@ -2,12 +2,10 @@
 
 namespace Ziming\LaravelMyinfoSg\Exceptions;
 
-
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class AccessTokenNotFoundException extends HttpException
 {
-
     /**
      * AccessTokenNotFoundException constructor.
      * @param int $statusCode
