@@ -4,17 +4,17 @@ namespace Ziming\LaravelMyinfoSg;
 
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
-use Ziming\LaravelMyinfoSg\Exceptions\AccessTokenNotFoundException;
-use Ziming\LaravelMyinfoSg\Exceptions\InvalidAccessTokenException;
-use Ziming\LaravelMyinfoSg\Exceptions\InvalidDataOrSignatureForPersonDataException;
-use Ziming\LaravelMyinfoSg\Exceptions\MyinfoPersonDataNotFoundException;
-use Ziming\LaravelMyinfoSg\Exceptions\UinfinNotFoundException;
 use Ziming\LaravelMyinfoSg\Services\MyinfoSecurityService;
+use Ziming\LaravelMyinfoSg\Exceptions\UinfinNotFoundException;
+use Ziming\LaravelMyinfoSg\Exceptions\InvalidAccessTokenException;
+use Ziming\LaravelMyinfoSg\Exceptions\AccessTokenNotFoundException;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoPersonDataNotFoundException;
+use Ziming\LaravelMyinfoSg\Exceptions\InvalidDataOrSignatureForPersonDataException;
 
 class LaravelMyinfoSg
 {
     /**
-     * Generate MyInfo Authorise API URI to redirect to
+     * Generate MyInfo Authorise API URI to redirect to.
      * @return string
      * @throws \Exception
      */
@@ -30,18 +30,17 @@ class LaravelMyinfoSg
 
         $query = urldecode($query);
 
-        $redirectUri = config('laravel-myinfo-sg.api_authorise_uri') . '?' . $query;
+        $redirectUri = config('laravel-myinfo-sg.api_authorise_uri').'?'.$query;
 
         return $redirectUri;
     }
 
     /**
-     * Everything below will be related to Getting MyInfo Person Data
+     * Everything below will be related to Getting MyInfo Person Data.
      */
 
-
     /**
-     * Get MyInfo Person Data in an array with a 'data' key
+     * Get MyInfo Person Data in an array with a 'data' key.
      *
      * @param Request $request
      * @return array The Person Data
@@ -56,7 +55,6 @@ class LaravelMyinfoSg
         $tokenRequestResponseBody = $tokenRequestResponse->getBody();
 
         if ($tokenRequestResponseBody) {
-
             $decoded = json_decode($tokenRequestResponseBody, true);
 
             if ($decoded) {
@@ -68,7 +66,7 @@ class LaravelMyinfoSg
     }
 
     /**
-     * Create Token Request
+     * Create Token Request.
      *
      * @param string $code
      * @return \Psr\Http\Message\ResponseInterface
@@ -94,10 +92,7 @@ class LaravelMyinfoSg
             'Content-Type' => $contentType,
         ];
 
-
-
         if (config('laravel-myinfo-sg.auth_level') === 'L2') {
-
             $authHeaders = MyinfoSecurityService::generateAuthorizationHeader(
                 config('laravel-myinfo-sg.api_token_uri'),
                 $params,
@@ -121,7 +116,7 @@ class LaravelMyinfoSg
     }
 
     /**
-     * Call Person API
+     * Call Person API.
      *
      * @param $accessToken
      * @return array
@@ -146,19 +141,15 @@ class LaravelMyinfoSg
         $personRequestResponseContent = $personRequestResponseBody->getContents();
 
         if ($personRequestResponseContent) {
-
             $personData = json_decode($personRequestResponseContent, true);
 
             $authLevel = config('laravel-myinfo-sg.auth_level');
 
             if ($authLevel === 'L0') {
-
                 return [
                     'data' => $personData,
                 ];
-
             } elseif ($authLevel === 'L2') {
-
                 $personData = $personRequestResponseContent;
 
                 $personDataJWS = MyInfoSecurityService::decryptJWE(
@@ -180,14 +171,13 @@ class LaravelMyinfoSg
                     'data' => $decodedPersonData,
                 ];
             }
-
         }
 
         throw new MyinfoPersonDataNotFoundException;
     }
 
     /**
-     * Create Person Request
+     * Create Person Request.
      *
      * @param $uinfin
      * @param $validAccessToken
@@ -198,7 +188,7 @@ class LaravelMyinfoSg
     {
         $guzzleClient = new Client;
 
-        $uri = config('laravel-myinfo-sg.api_person_uri') . "/{$uinfin}/";
+        $uri = config('laravel-myinfo-sg.api_person_uri')."/{$uinfin}/";
 
         $params = [
             'client_id' => config('laravel-myinfo-sg.client_id'),
@@ -221,14 +211,14 @@ class LaravelMyinfoSg
         );
 
         if ($authHeaders) {
-            $headers['Authorization'] = $authHeaders . ',Bearer ' . $validAccessToken;
+            $headers['Authorization'] = $authHeaders.',Bearer '.$validAccessToken;
         } else {
-            $headers['Authorization'] = 'Bearer ' . $validAccessToken;
+            $headers['Authorization'] = 'Bearer '.$validAccessToken;
         }
 
         $response = $guzzleClient->get($uri, [
             'query' => $params,
-            'headers' => $headers
+            'headers' => $headers,
         ]);
 
         return $response;

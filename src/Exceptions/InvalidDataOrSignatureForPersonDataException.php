@@ -2,12 +2,10 @@
 
 namespace Ziming\LaravelMyinfoSg\Exceptions;
 
-
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class InvalidDataOrSignatureForPersonDataException extends HttpException
 {
-
     /**
      * InvalidDataOrSignatureForPersonDataException constructor.
      * @param int $statusCode

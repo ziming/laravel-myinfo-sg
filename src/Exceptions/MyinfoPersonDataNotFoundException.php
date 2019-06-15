@@ -2,12 +2,10 @@
 
 namespace Ziming\LaravelMyinfoSg\Exceptions;
 
-
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class MyinfoPersonDataNotFoundException extends HttpException
 {
-
     /**
      * MyinfoPersonDataNotFoundException constructor.
      * @param int $statusCode

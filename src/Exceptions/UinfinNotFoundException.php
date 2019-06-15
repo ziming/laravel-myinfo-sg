@@ -2,12 +2,10 @@
 
 namespace Ziming\LaravelMyinfoSg\Exceptions;
 
-
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class UinfinNotFoundException extends HttpException
 {
-
     /**
      * UinfinNotFoundException constructor.
      * @param int $statusCode

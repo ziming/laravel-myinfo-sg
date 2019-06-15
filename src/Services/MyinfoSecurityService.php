@@ -3,26 +3,25 @@
 namespace Ziming\LaravelMyinfoSg\Services;
 
 use Jose\Component\Core\AlgorithmManager;
-use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
-use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
-use Jose\Component\Encryption\Compression\CompressionMethodManager;
-use Jose\Component\Encryption\Compression\Deflate;
+use Jose\Component\Signature\JWSVerifier;
 use Jose\Component\Encryption\JWEDecrypter;
 use Jose\Component\KeyManagement\JWKFactory;
 use Jose\Component\Signature\Algorithm\RS256;
-use Jose\Component\Signature\JWSVerifier;
+use Jose\Component\Encryption\Compression\Deflate;
 use Jose\Component\Signature\Serializer\CompactSerializer;
 use Jose\Component\Signature\Serializer\JWSSerializerManager;
+use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
 use Jose\Component\Encryption\Serializer\JWESerializerManager;
+use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
+use Jose\Component\Encryption\Compression\CompressionMethodManager;
 
 /*
  * @internal
  */
 final class MyinfoSecurityService
 {
-
     /**
-     * Verify JWS
+     * Verify JWS.
      *
      * @param string $accessToken
      * @return mixed|null
@@ -42,7 +41,7 @@ final class MyinfoSecurityService
     }
 
     /**
-     * Generate Authorization Header
+     * Generate Authorization Header.
      *
      * @param string $uri
      * @param array $params
@@ -67,7 +66,7 @@ final class MyinfoSecurityService
     }
 
     /**
-     * Generate SHA256 with RSA Header
+     * Generate SHA256 with RSA Header.
      *
      * @param string $uri
      * @param array $params
@@ -96,7 +95,6 @@ final class MyinfoSecurityService
             $params = [];
         }
 
-
         $baseParams = array_merge($defaultApexHeaders, $params);
         ksort($baseParams);
 
@@ -111,12 +109,12 @@ final class MyinfoSecurityService
 
         $signature = base64_encode($signature);
 
-        $strApexHeader = "PKI_SIGN timestamp=\"" . $timestamp .
-            "\",nonce=\"" . $nonce .
-            "\",app_id=\"" . $appId .
-            "\",signature_method=\"RS256\"" .
-            ",signature=\"" . $signature .
-            "\"";
+        $strApexHeader = 'PKI_SIGN timestamp="'.$timestamp.
+            '",nonce="'.$nonce.
+            '",app_id="'.$appId.
+            '",signature_method="RS256"'.
+            ',signature="'.$signature.
+            '"';
 
         return $strApexHeader;
     }
@@ -139,7 +137,6 @@ final class MyinfoSecurityService
         ]);
 
         $jwe = $serializerManager->unserialize($personDataToken);
-
 
         $keyEncryptionAlgorithmManager = AlgorithmManager::create([
             new RSAOAEP(),
