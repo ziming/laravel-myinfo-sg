@@ -80,7 +80,7 @@ final class MyinfoSecurityService
      */
     private static function generateSHA256withRSAHeader(string $uri, array $params, string $method, string $contentType, string $appId, string $privateKeyPath, string $passphrase)
     {
-        $nonce = random_int(PHP_INT_MIN, -1);
+        $nonce = random_int(PHP_INT_MIN, PHP_INT_MAX);
 
         $timestamp = (int) round(microtime(true) * 1000);
 
