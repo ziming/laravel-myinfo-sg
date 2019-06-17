@@ -24,7 +24,7 @@ class LaravelMyinfoSg
             'client_id' => config('laravel-myinfo-sg.client_id'),
             'attributes' => config('laravel-myinfo-sg.attributes'),
             'purpose' => config('laravel-myinfo-sg.purpose'),
-            'state' => random_int(0, PHP_INT_MAX),
+            'state' => random_int(PHP_INT_MIN, -1),
             'redirect_uri' => config('laravel-myinfo-sg.redirect_uri'),
         ]);
 
