@@ -12,7 +12,7 @@ class UinfinNotFoundException extends HttpException
      * @param string $message
      * @param \Exception|null $previous
      * @param array $headers
-     * @param integer $code
+     * @param int $code
      */
     public function __construct(int $statusCode = 404, string $message = 'UINFIN not found', \Exception $previous = null, array $headers = [], ?int $code = 0)
     {
