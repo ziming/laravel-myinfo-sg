@@ -13,7 +13,7 @@ class InvalidAccessTokenException extends HttpException
      * @param string $message
      * @param \Exception|null $previous
      * @param array $headers
-     * @param integer $code
+     * @param int $code
      */
     public function __construct(int $statusCode = Response::HTTP_BAD_REQUEST, string $message = 'Invalid Access Token', \Exception $previous = null, array $headers = [], ?int $code = 0)
     {
