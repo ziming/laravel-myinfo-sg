@@ -3,21 +3,22 @@
 namespace Ziming\LaravelMyinfoSg\Services;
 
 use Jose\Component\Core\AlgorithmManager;
-use Jose\Component\Signature\JWSVerifier;
+use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
+use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
+use Jose\Component\Encryption\Compression\CompressionMethodManager;
+use Jose\Component\Encryption\Compression\Deflate;
 use Jose\Component\Encryption\JWEDecrypter;
+use Jose\Component\Encryption\Serializer\JWESerializerManager;
 use Jose\Component\KeyManagement\JWKFactory;
 use Jose\Component\Signature\Algorithm\RS256;
-use Jose\Component\Encryption\Compression\Deflate;
+use Jose\Component\Signature\JWSVerifier;
 use Jose\Component\Signature\Serializer\CompactSerializer;
 use Jose\Component\Signature\Serializer\JWSSerializerManager;
-use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
-use Jose\Component\Encryption\Serializer\JWESerializerManager;
-use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
-use Jose\Component\Encryption\Compression\CompressionMethodManager;
 
 /*
  * @internal
  */
+
 final class MyinfoSecurityService
 {
     /**
@@ -55,11 +56,11 @@ final class MyinfoSecurityService
      * @throws \Exception
      */
     public static function generateAuthorizationHeader(string $uri, array $params, string $method, string $contentType,
-                                                       string $authType, string $appId, string $privateKeyPath,
+                                                       string $authType, string $appId,
                                                        string $passphrase)
     {
         if ($authType === 'L2') {
-            return self::generateSHA256withRSAHeader($uri, $params, $method, $contentType, $appId, $privateKeyPath, $passphrase);
+            return self::generateSHA256withRSAHeader($uri, $params, $method, $contentType, $appId, $passphrase);
         }
 
         return '';
@@ -78,17 +79,17 @@ final class MyinfoSecurityService
      * @return string
      * @throws \Exception
      */
-    private static function generateSHA256withRSAHeader(string $uri, array $params, string $method, string $contentType, string $appId, string $privateKeyPath, string $passphrase)
+    private static function generateSHA256withRSAHeader(string $uri, array $params, string $method, string $contentType, string $appId, string $passphrase)
     {
         $nonce = random_int(PHP_INT_MIN, PHP_INT_MAX);
 
         $timestamp = (int) round(microtime(true) * 1000);
 
         $defaultApexHeaders = [
-            'app_id' => $appId,
-            'nonce' => $nonce,
+            'app_id'           => $appId,
+            'nonce'            => $nonce,
             'signature_method' => 'RS256',
-            'timestamp' => $timestamp,
+            'timestamp'        => $timestamp,
         ];
 
         if ($method === 'POST' && $contentType !== 'application/x-www-form-urlencoded') {
@@ -109,11 +110,11 @@ final class MyinfoSecurityService
 
         $signature = base64_encode($signature);
 
-        $strApexHeader = 'PKI_SIGN timestamp="'.$timestamp.
-            '",nonce="'.$nonce.
-            '",app_id="'.$appId.
-            '",signature_method="RS256"'.
-            ',signature="'.$signature.
+        $strApexHeader = 'PKI_SIGN timestamp="' . $timestamp .
+            '",nonce="' . $nonce .
+            '",app_id="' . $appId .
+            '",signature_method="RS256"' .
+            ',signature="' . $signature .
             '"';
 
         return $strApexHeader;

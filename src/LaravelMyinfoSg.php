@@ -100,7 +100,6 @@ class LaravelMyinfoSg
                 $contentType,
                 config('laravel-myinfo-sg.auth_level'),
                 config('laravel-myinfo-sg.client_id'),
-                config('laravel-myinfo-sg.private_key_path'),
                 config('laravel-myinfo-sg.client_secret')
             );
 
@@ -206,7 +205,6 @@ class LaravelMyinfoSg
             '',
             config('laravel-myinfo-sg.auth_level'),
             config('laravel-myinfo-sg.client_id'),
-            config('laravel-myinfo-sg.private_key_path'),
             config('laravel-myinfo-sg.client_secret')
         );
 

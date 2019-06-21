@@ -1,8 +1,5 @@
 <?php
 
-/*
- * You can place your custom package configuration in here.
- */
 return [
     'client_id'     => env('MYINFO_APP_CLIENT_ID', 'STG2-MYINFO-SELF-TEST'),
     'client_secret' => env('MYINFO_APP_CLIENT_SECRET', '44d953c796cccebcec9bdc826852857ab412fbe2'),
