@@ -12,7 +12,7 @@ class MyinfoPersonDataNotFoundException extends HttpException
      * @param string $message
      * @param \Exception|null $previous
      * @param array $headers
-     * @param int|null $code
+     * @param integer $code
      */
     public function __construct(int $statusCode = 404, string $message = 'MyInfo Person Data not found', \Exception $previous = null, array $headers = [], ?int $code = 0)
     {

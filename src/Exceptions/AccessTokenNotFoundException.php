@@ -12,7 +12,7 @@ class AccessTokenNotFoundException extends HttpException
      * @param string $message
      * @param \Exception|null $previous
      * @param array $headers
-     * @param int|null $code
+     * @param integer $code
      */
     public function __construct(int $statusCode = 404, string $message = 'Access Token Not Found', \Exception $previous = null, array $headers = [], ?int $code = 0)
     {
