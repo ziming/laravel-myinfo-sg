@@ -3,17 +3,17 @@
 namespace Ziming\LaravelMyinfoSg\Services;
 
 use Jose\Component\Core\AlgorithmManager;
-use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
-use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
-use Jose\Component\Encryption\Compression\CompressionMethodManager;
-use Jose\Component\Encryption\Compression\Deflate;
+use Jose\Component\Signature\JWSVerifier;
 use Jose\Component\Encryption\JWEDecrypter;
-use Jose\Component\Encryption\Serializer\JWESerializerManager;
 use Jose\Component\KeyManagement\JWKFactory;
 use Jose\Component\Signature\Algorithm\RS256;
-use Jose\Component\Signature\JWSVerifier;
+use Jose\Component\Encryption\Compression\Deflate;
 use Jose\Component\Signature\Serializer\CompactSerializer;
 use Jose\Component\Signature\Serializer\JWSSerializerManager;
+use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
+use Jose\Component\Encryption\Serializer\JWESerializerManager;
+use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
+use Jose\Component\Encryption\Compression\CompressionMethodManager;
 
 /*
  * @internal
@@ -110,11 +110,11 @@ final class MyinfoSecurityService
 
         $signature = base64_encode($signature);
 
-        $strApexHeader = 'PKI_SIGN timestamp="' . $timestamp .
-            '",nonce="' . $nonce .
-            '",app_id="' . $appId .
-            '",signature_method="RS256"' .
-            ',signature="' . $signature .
+        $strApexHeader = 'PKI_SIGN timestamp="'.$timestamp.
+            '",nonce="'.$nonce.
+            '",app_id="'.$appId.
+            '",signature_method="RS256"'.
+            ',signature="'.$signature.
             '"';
 
         return $strApexHeader;
