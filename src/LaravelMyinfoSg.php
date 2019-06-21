@@ -4,12 +4,12 @@ namespace Ziming\LaravelMyinfoSg;
 
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
-use Ziming\LaravelMyinfoSg\Services\MyinfoSecurityService;
-use Ziming\LaravelMyinfoSg\Exceptions\UinfinNotFoundException;
-use Ziming\LaravelMyinfoSg\Exceptions\InvalidAccessTokenException;
 use Ziming\LaravelMyinfoSg\Exceptions\AccessTokenNotFoundException;
-use Ziming\LaravelMyinfoSg\Exceptions\MyinfoPersonDataNotFoundException;
+use Ziming\LaravelMyinfoSg\Exceptions\InvalidAccessTokenException;
 use Ziming\LaravelMyinfoSg\Exceptions\InvalidDataOrSignatureForPersonDataException;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoPersonDataNotFoundException;
+use Ziming\LaravelMyinfoSg\Exceptions\UinfinNotFoundException;
+use Ziming\LaravelMyinfoSg\Services\MyinfoSecurityService;
 
 class LaravelMyinfoSg
 {
