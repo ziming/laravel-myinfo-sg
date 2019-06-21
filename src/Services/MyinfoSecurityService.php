@@ -50,7 +50,6 @@ final class MyinfoSecurityService
      * @param string $contentType
      * @param string $authType
      * @param string $appId
-     * @param string $privateKeyPath
      * @param string $passphrase
      * @return string
      * @throws \Exception
@@ -74,7 +73,6 @@ final class MyinfoSecurityService
      * @param string $method
      * @param string $contentType
      * @param string $appId
-     * @param string $privateKeyPath
      * @param string $passphrase
      * @return string
      * @throws \Exception
@@ -123,7 +121,7 @@ final class MyinfoSecurityService
     /**
      * @param string $personDataToken
      * @param string $privateKeyPath
-     * @return mixed|string|null
+     * @return string
      * @throws \Exception
      */
     public static function decryptJWE(string $personDataToken, string $privateKeyPath)
