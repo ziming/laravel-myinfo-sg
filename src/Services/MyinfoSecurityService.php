@@ -30,10 +30,10 @@ final class MyinfoSecurityService
      */
     public static function verifyJWS(string $accessToken)
     {
-        $algorithmManager = AlgorithmManager::create([new RS256()]);
+        $algorithmManager = new AlgorithmManager([new RS256]);
         $jwk = JWKFactory::createFromCertificateFile(config('laravel-myinfo-sg.public_cert_path'));
         $jwsVerifier = new JWSVerifier($algorithmManager);
-        $serializerManager = JWSSerializerManager::create([new CompactSerializer()]);
+        $serializerManager = new JWSSerializerManager([new CompactSerializer]);
 
         $jws = $serializerManager->unserialize($accessToken);
         $verified = $jwsVerifier->verifyWithKey($jws, $jwk, 0);
@@ -131,23 +131,17 @@ final class MyinfoSecurityService
             config('laravel-myinfo-sg.client_secret')
         );
 
-        $serializerManager = JWESerializerManager::create([
+        $serializerManager = new JWESerializerManager([
             new \Jose\Component\Encryption\Serializer\CompactSerializer(),
         ]);
 
         $jwe = $serializerManager->unserialize($personDataToken);
 
-        $keyEncryptionAlgorithmManager = AlgorithmManager::create([
-            new RSAOAEP(),
-        ]);
+        $keyEncryptionAlgorithmManager = new AlgorithmManager([new RSAOAEP]);
 
-        $contentEncryptionAlgorithmManager = AlgorithmManager::create([
-            new A256GCM(),
-        ]);
+        $contentEncryptionAlgorithmManager = new AlgorithmManager([new A256GCM]);
 
-        $compressionMethodManager = CompressionMethodManager::create([
-            new Deflate(),
-        ]);
+        $compressionMethodManager = new CompressionMethodManager([new Deflate]);
 
         $jweDecrypter = new JWEDecrypter(
             $keyEncryptionAlgorithmManager,
