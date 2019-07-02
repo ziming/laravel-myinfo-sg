@@ -5,15 +5,11 @@
 [![Quality Score](https://img.shields.io/scrutinizer/g/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://scrutinizer-ci.com/g/ziming/laravel-myinfo-sg)
 [![Total Downloads](https://img.shields.io/packagist/dt/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
 
-A PHP Laravel Package for MyInfo Singapore. 
+A working PHP Laravel Package for MyInfo Singapore. With the annoying hidden quirks of implementing it in PHP figured out. 
 
-Although it does work from my own testing, the core API is not fully stable yet 
-so use it at your own **risk**.
+The core API of this library is not fully stable yet so use it at your own **risk**.
 
-Tests will be welcomed. Now would also be the best time to suggest changes before 1.0
-
-Hope this package help those who struggles to translate the official nodejs demo app to its PHP equivalent. 
-As it took me a long time too
+Now would also be the best time to suggest changes before 1.0
 
 ## Installation
 
@@ -205,7 +201,7 @@ Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recen
 
 Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
-## Credits
+You may also contribute by using the referral links of some of the products or services I support below:
 
-- [Ziming](https://github.com/ziming)
-- [All Contributors](../../contributors)
+- https://sg.yougov.com/en-sg/refer/X_TOE4BGGtrAFuhX0ZNq9w/ (YouGov)
+- https://courses.kevindelaplante.com/a/p78lj (Argument Ninja Dojo)

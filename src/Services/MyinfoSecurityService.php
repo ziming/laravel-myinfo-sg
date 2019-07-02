@@ -15,10 +15,9 @@ use Jose\Component\Encryption\Serializer\JWESerializerManager;
 use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
 use Jose\Component\Encryption\Compression\CompressionMethodManager;
 
-/*
+/**
  * @internal
  */
-
 final class MyinfoSecurityService
 {
     /**
