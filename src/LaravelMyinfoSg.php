@@ -62,7 +62,7 @@ class LaravelMyinfoSg
             }
         }
 
-        throw new AccessTokenNotFoundException();
+        throw new AccessTokenNotFoundException;
     }
 
     /**
@@ -90,6 +90,7 @@ class LaravelMyinfoSg
         $headers = [
             'Cache-Control' => 'no-cache',
             'Content-Type' => $contentType,
+            'Accept-Encoding' => 'gzip',
         ];
 
         if (config('laravel-myinfo-sg.auth_level') === 'L2') {
@@ -132,7 +133,7 @@ class LaravelMyinfoSg
         $uinfin = $decoded['sub'];
 
         if ($uinfin === null) {
-            throw new UinfinNotFoundException();
+            throw new UinfinNotFoundException;
         }
 
         $personRequestResponse = $this->createPersonRequest($uinfin, $accessToken);
@@ -157,13 +158,13 @@ class LaravelMyinfoSg
                 );
 
                 if ($personDataJWS === null) {
-                    throw new InvalidDataOrSignatureForPersonDataException();
+                    throw new InvalidDataOrSignatureForPersonDataException;
                 }
 
                 $decodedPersonData = MyInfoSecurityService::verifyJWS($personDataJWS);
 
                 if ($decodedPersonData === null) {
-                    throw new InvalidDataOrSignatureForPersonDataException();
+                    throw new InvalidDataOrSignatureForPersonDataException;
                 }
 
                 return [
@@ -196,6 +197,7 @@ class LaravelMyinfoSg
 
         $headers = [
             'Cache-Control' => 'no-cache',
+            'Accept-Encoding' => 'gzip',
         ];
 
         $authHeaders = MyInfoSecurityService::generateAuthorizationHeader(
