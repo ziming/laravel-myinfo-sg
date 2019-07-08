@@ -1,5 +1,8 @@
 <?php
 
+use Ziming\LaravelMyinfoSg\Http\Controllers\CallAuthoriseApiController;
+use Ziming\LaravelMyinfoSg\Http\Controllers\GetMyinfoPersonDataController;
+
 return [
     'client_id'     => env('MYINFO_APP_CLIENT_ID', 'STG2-MYINFO-SELF-TEST'),
     'client_secret' => env('MYINFO_APP_CLIENT_SECRET', '44d953c796cccebcec9bdc826852857ab412fbe2'),
@@ -21,4 +24,8 @@ return [
 
     'call_authorise_api_url' => env('MYINFO_CALL_AUTHORISE_API_URL', '/redirect-to-singpass'),
     'get_myinfo_person_data_url' => env('MYINFO_GET_PERSON_DATA_URL', '/myinfo-person'),
+
+    // The default controllers used my the default provided myinfo routes.
+    'call_authorise_api_controller' => CallAuthoriseApiController::class,
+    'get_myinfo_person_data_controller' => GetMyinfoPersonDataController::class,
 ];
