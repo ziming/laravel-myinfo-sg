@@ -15,6 +15,6 @@ class CallAuthoriseApiController
      */
     public function __invoke(LaravelMyinfoSg $laravelMyinfoSg)
     {
-        return redirect($laravelMyinfoSg->generateAuthoriseApiUri());
+        return redirect($laravelMyinfoSg->generateAuthoriseApiUrl());
     }
 }

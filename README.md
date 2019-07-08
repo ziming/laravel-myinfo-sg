@@ -28,7 +28,7 @@ Change them to the values you are given for your app.
 ```.dotenv
 MYINFO_APP_CLIENT_ID=STG2-MYINFO-SELF-TEST
 MYINFO_APP_CLIENT_SECRET=44d953c796cccebcec9bdc826852857ab412fbe2
-MYINFO_APP_REDIRECT_URI=http://localhost:3001/callback
+MYINFO_APP_REDIRECT_URL=http://localhost:3001/callback
 MYINFO_APP_PURPOSE="demonstrating MyInfo APIs"
 MYINFO_APP_ATTRIBUTES=uinfin,name,sex,race,nationality,dob,email,mobileno,regadd,housingtype,hdbtype,marital,edulevel,noa-basic,ownerprivate,cpfcontributions,cpfbalances
 
@@ -50,8 +50,8 @@ MYINFO_API_PERSON=https://sandbox.api.myinfo.gov.sg/com/v3/person
 #MYINFO_API_PERSON=https://test.api.myinfo.gov.sg/com/v3/person
 
 # Controller URI Paths. IMPORTANT
-MYINFO_CALL_AUTHORISE_API_URI=/redirect-to-singpass
-MYINFO_GET_PERSON_DATA_URI=/myinfo-person
+MYINFO_CALL_AUTHORISE_API_URL=/redirect-to-singpass
+MYINFO_GET_PERSON_DATA_URL=/myinfo-person
 ```
 
 Lastly, publish the config file
@@ -179,7 +179,7 @@ authorisation api uri (The redirect to Singpass link) and to fetch MyInfo Person
 use Ziming\LaravelMyinfoSg\LaravelMyinfoSgFacade as LaravelMyinfoSg;
 
 // Get the Singpass URI and redirect to there
-return redirect(LaravelMyinfoSg::generateAuthoriseApiUri());
+return redirect(LaravelMyinfoSg::generateAuthoriseApiUrl());
 ```
 
 ```php
@@ -206,5 +206,5 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 You may also contribute by using the referral links of some of the products or services I support below:
 
-- https://sg.yougov.com/en-sg/refer/X_TOE4BGGtrAFuhX0ZNq9w/ (YouGov)
-- https://courses.kevindelaplante.com/a/p78lj (Argument Ninja Dojo)
+- https://sg.yougov.com/en-sg/refer/X_TOE4BGGtrAFuhX0ZNq9w/ (YouGov Surveys)
+- https://courses.kevindelaplante.com/a/p78lj (Argument Ninja Dojo Course)

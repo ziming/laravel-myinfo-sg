@@ -18,19 +18,19 @@ class LaravelMyinfoSg
      * @return string
      * @throws \Exception
      */
-    public function generateAuthoriseApiUri() : string
+    public function generateAuthoriseApiUrl() : string
     {
         $query = http_build_query([
             'client_id' => config('laravel-myinfo-sg.client_id'),
             'attributes' => config('laravel-myinfo-sg.attributes'),
             'purpose' => config('laravel-myinfo-sg.purpose'),
             'state' => random_int(PHP_INT_MIN, PHP_INT_MAX),
-            'redirect_uri' => config('laravel-myinfo-sg.redirect_uri'),
+            'redirect_uri' => config('laravel-myinfo-sg.redirect_url'),
         ]);
 
         $query = urldecode($query);
 
-        $redirectUri = config('laravel-myinfo-sg.api_authorise_uri').'?'.$query;
+        $redirectUri = config('laravel-myinfo-sg.api_authorise_url').'?'.$query;
 
         return $redirectUri;
     }
@@ -81,7 +81,7 @@ class LaravelMyinfoSg
 
         $params = [
             'grant_type' => 'authorization_code',
-            'redirect_uri' => config('laravel-myinfo-sg.redirect_uri'),
+            'redirect_uri' => config('laravel-myinfo-sg.redirect_url'),
             'client_id' => config('laravel-myinfo-sg.client_id'),
             'client_secret' => config('laravel-myinfo-sg.client_secret'),
             'code' => $code,
@@ -95,7 +95,7 @@ class LaravelMyinfoSg
 
         if (config('laravel-myinfo-sg.auth_level') === 'L2') {
             $authHeaders = MyinfoSecurityService::generateAuthorizationHeader(
-                config('laravel-myinfo-sg.api_token_uri'),
+                config('laravel-myinfo-sg.api_token_url'),
                 $params,
                 $method,
                 $contentType,
@@ -107,7 +107,7 @@ class LaravelMyinfoSg
             $headers['Authorization'] = $authHeaders;
         }
 
-        $response = $guzzleClient->post(config('laravel-myinfo-sg.api_token_uri'), [
+        $response = $guzzleClient->post(config('laravel-myinfo-sg.api_token_url'), [
             'form_params' => $params,
             'headers' => $headers,
         ]);
@@ -188,7 +188,7 @@ class LaravelMyinfoSg
     {
         $guzzleClient = new Client;
 
-        $uri = config('laravel-myinfo-sg.api_person_uri')."/{$uinfin}/";
+        $url = config('laravel-myinfo-sg.api_person_url')."/{$uinfin}/";
 
         $params = [
             'client_id' => config('laravel-myinfo-sg.client_id'),
@@ -201,7 +201,7 @@ class LaravelMyinfoSg
         ];
 
         $authHeaders = MyInfoSecurityService::generateAuthorizationHeader(
-            $uri,
+            $url,
             $params,
             'GET',
             '',
@@ -216,7 +216,7 @@ class LaravelMyinfoSg
             $headers['Authorization'] = 'Bearer '.$validAccessToken;
         }
 
-        $response = $guzzleClient->get($uri, [
+        $response = $guzzleClient->get($url, [
             'query' => $params,
             'headers' => $headers,
         ]);

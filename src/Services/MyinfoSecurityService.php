@@ -43,7 +43,7 @@ final class MyinfoSecurityService
     /**
      * Generate Authorization Header.
      *
-     * @param string $uri
+     * @param string $url
      * @param array $params
      * @param string $method
      * @param string $contentType
@@ -53,12 +53,12 @@ final class MyinfoSecurityService
      * @return string
      * @throws \Exception
      */
-    public static function generateAuthorizationHeader(string $uri, array $params, string $method, string $contentType,
+    public static function generateAuthorizationHeader(string $url, array $params, string $method, string $contentType,
                                                        string $authType, string $appId,
                                                        string $passphrase)
     {
         if ($authType === 'L2') {
-            return self::generateSHA256withRSAHeader($uri, $params, $method, $contentType, $appId, $passphrase);
+            return self::generateSHA256withRSAHeader($url, $params, $method, $contentType, $appId, $passphrase);
         }
 
         return '';
@@ -67,7 +67,7 @@ final class MyinfoSecurityService
     /**
      * Generate SHA256 with RSA Header.
      *
-     * @param string $uri
+     * @param string $url
      * @param array $params
      * @param string $method
      * @param string $contentType
@@ -76,7 +76,7 @@ final class MyinfoSecurityService
      * @return string
      * @throws \Exception
      */
-    private static function generateSHA256withRSAHeader(string $uri, array $params, string $method, string $contentType, string $appId, string $passphrase)
+    private static function generateSHA256withRSAHeader(string $url, array $params, string $method, string $contentType, string $appId, string $passphrase)
     {
         $nonce = random_int(PHP_INT_MIN, PHP_INT_MAX);
 
@@ -99,7 +99,7 @@ final class MyinfoSecurityService
         $baseParamsStr = http_build_query($baseParams);
         $baseParamsStr = urldecode($baseParamsStr);
 
-        $baseString = "{$method}&{$uri}&{$baseParamsStr}";
+        $baseString = "{$method}&{$url}&{$baseParamsStr}";
 
         $privateKey = openssl_get_privatekey(config('laravel-myinfo-sg.private_key_path'), $passphrase);
 
