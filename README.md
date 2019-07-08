@@ -5,11 +5,8 @@
 [![Quality Score](https://img.shields.io/scrutinizer/g/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://scrutinizer-ci.com/g/ziming/laravel-myinfo-sg)
 [![Total Downloads](https://img.shields.io/packagist/dt/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
 
-A working PHP Laravel Package for MyInfo Singapore. With the annoying hidden quirks of implementing it in PHP figured out. 
-
-The core API of this library is not fully stable yet so use it at your own **risk**.
-
-Now would also be the best time to suggest changes before 1.0
+A working PHP Laravel Package for MyInfo Singapore. With the annoying, 
+time wasting hidden quirks of implementing it in PHP figured out. 
 
 ## Installation
 
