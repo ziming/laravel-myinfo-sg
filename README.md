@@ -189,7 +189,7 @@ return response()->json($personData['data']);
 ```
 
 You may also choose to subclass `GetMyinfoPersonDataController` and override its `preResponseHook()` template method to
-do logging.
+do logging or other stuffs before returning the person data.
 
 ### Changelog
 
