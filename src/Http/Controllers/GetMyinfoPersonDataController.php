@@ -19,6 +19,18 @@ class GetMyinfoPersonDataController
     {
         $personData = $laravelMyinfoSg->getMyinfoPersonData($request);
 
+        $this->preResponseHook($personData);
+
         return response()->json($personData);
+    }
+
+    /**
+     * @param array $personData
+     */
+    protected function preResponseHook(array $personData)
+    {
+        // Extend this class, override this method.
+        // And do your logging and whatever stuffs here if needed.
+        // person information is in the 'data' key of $personData array.
     }
 }

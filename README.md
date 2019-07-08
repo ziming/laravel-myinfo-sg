@@ -193,6 +193,9 @@ $personData = LaravelMyinfoSg::getMyinfoPersonData();
 return response()->json($personData['data']);
 ```
 
+You may also choose to subclass `GetMyinfoPersonDataController` and override its `preResponseHook()` template method to
+do logging.
+
 ### Changelog
 
 Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
