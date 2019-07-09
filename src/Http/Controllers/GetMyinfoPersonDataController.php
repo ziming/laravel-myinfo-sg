@@ -3,9 +3,10 @@
 namespace Ziming\LaravelMyinfoSg\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 use Ziming\LaravelMyinfoSg\LaravelMyinfoSg;
 
-class GetMyinfoPersonDataController
+class GetMyinfoPersonDataController extends Controller
 {
     /**
      * Fetch MyInfo Person Data after authorization code is given back.

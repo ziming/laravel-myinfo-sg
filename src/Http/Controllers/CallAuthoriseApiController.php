@@ -2,9 +2,10 @@
 
 namespace Ziming\LaravelMyinfoSg\Http\Controllers;
 
+use Illuminate\Routing\Controller;
 use Ziming\LaravelMyinfoSg\LaravelMyinfoSg;
 
-class CallAuthoriseApiController
+class CallAuthoriseApiController extends Controller
 {
     /**
      * Redirects to Singpass for user to give permission to fetch MyInfo Data.
