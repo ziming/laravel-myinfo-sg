@@ -79,12 +79,10 @@ use Ziming\LaravelMyinfoSg\Http\Controllers\GetMyinfoPersonDataController;
 use Illuminate\Support\Facades\Route;
 
 Route::post(config('/go-singpass'), CallAuthoriseApiController::class)
-->name('myinfo.singpass')
-->middleware(['auth']); // You may add your middlewares here
+->name('myinfo.singpass');
 
 Route::post('/fetch-myinfo-person-data', GetMyinfoPersonDataController::class)
-->name('myinfo.person')
-->middleware(['auth']);
+->name('myinfo.person');
 ```
 
 During the entire execution, some exceptions may be thrown. If you do not like the format of the json responses.
