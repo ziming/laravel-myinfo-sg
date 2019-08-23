@@ -4,6 +4,7 @@
 [![Build Status](https://img.shields.io/travis/ziming/laravel-myinfo-sg/master.svg?style=flat-square)](https://travis-ci.org/ziming/laravel-myinfo-sg)
 [![Quality Score](https://img.shields.io/scrutinizer/g/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://scrutinizer-ci.com/g/ziming/laravel-myinfo-sg)
 [![Total Downloads](https://img.shields.io/packagist/dt/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
+[![BCH compliance](https://bettercodehub.com/edge/badge/ziming/laravel-myinfo-sg?branch=master)](https://bettercodehub.com/)
 
 A working PHP Laravel Package for MyInfo Singapore. With the annoying, 
 time wasting hidden quirks of implementing it in PHP figured out. 
@@ -201,3 +202,4 @@ You may also contribute by using the referral links of some of the products or s
 
 - https://sg.yougov.com/en-sg/refer/X_TOE4BGGtrAFuhX0ZNq9w/ (YouGov Surveys)
 - https://courses.kevindelaplante.com/a/p78lj (Argument Ninja Dojo Course)
+- https://www.humblebundle.com/monthly?refc=vOZEog (Humble Monthly Referral)
