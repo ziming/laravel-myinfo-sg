@@ -4,8 +4,6 @@ namespace Ziming\LaravelMyinfoSg;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Ziming\LaravelMyinfoSg\Http\Controllers\CallAuthoriseApiController;
-use Ziming\LaravelMyinfoSg\Http\Controllers\GetMyinfoPersonDataController;
 
 class LaravelMyinfoSgServiceProvider extends ServiceProvider
 {

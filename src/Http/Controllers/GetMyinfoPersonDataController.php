@@ -34,6 +34,5 @@ class GetMyinfoPersonDataController extends Controller
         // Extend this class, override this method.
         // And do your logging and whatever stuffs here if needed.
         // person information is in the 'data' key of $personData array.
-        return;
     }
 }
