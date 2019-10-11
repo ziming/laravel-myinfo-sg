@@ -101,7 +101,7 @@ final class MyinfoSecurityService
 
         $baseString = "{$method}&{$url}&{$baseParamsStr}";
 
-        $privateKey = openssl_get_privatekey(config('laravel-myinfo-sg.private_key_path'), $passphrase);
+        $privateKey = openssl_pkey_get_private(config('laravel-myinfo-sg.private_key_path'), $passphrase);
 
         openssl_sign($baseString, $signature, $privateKey, 'sha256WithRSAEncryption');
 
