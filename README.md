@@ -201,5 +201,5 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 You may also contribute by using the referral links of some of the products or services I support below:
 
 - https://sg.yougov.com/en-sg/refer/X_TOE4BGGtrAFuhX0ZNq9w/ (YouGov Surveys)
-- https://courses.kevindelaplante.com/a/p78lj (Argument Ninja Dojo Course)
+- https://www.argumentninja.com/a/p78lj (Argument Ninja Dojo Course)
 - https://www.humblebundle.com/monthly?refc=vOZEog (Humble Monthly Referral)
