@@ -161,7 +161,7 @@ use Ziming\LaravelMyinfoSg\Exceptions\AccessTokenNotFoundException;
 use Ziming\LaravelMyinfoSg\Exceptions\InvalidAccessTokenException;
 use Ziming\LaravelMyinfoSg\Exceptions\InvalidDataOrSignatureForPersonDataException;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoPersonDataNotFoundException;
-use Ziming\LaravelMyinfoSg\Exceptions\UinfinNotFoundException;
+use Ziming\LaravelMyinfoSg\Exceptions\SubNotFoundException;
 ```
 
 Lastly, if you prefer to write your own controllers, you may make use of `LaravelMyinfoSgFacade` or `LaravelMyinfoSg` to generate the

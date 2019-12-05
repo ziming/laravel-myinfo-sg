@@ -5,7 +5,7 @@ namespace Ziming\LaravelMyinfoSg;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Ziming\LaravelMyinfoSg\Services\MyinfoSecurityService;
-use Ziming\LaravelMyinfoSg\Exceptions\UinfinNotFoundException;
+use Ziming\LaravelMyinfoSg\Exceptions\SubNotFoundException;
 use Ziming\LaravelMyinfoSg\Exceptions\InvalidAccessTokenException;
 use Ziming\LaravelMyinfoSg\Exceptions\AccessTokenNotFoundException;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoPersonDataNotFoundException;
@@ -130,13 +130,13 @@ class LaravelMyinfoSg
             throw new InvalidAccessTokenException;
         }
 
-        $uinfin = $decoded['sub'];
+        $sub = $decoded['sub'];
 
-        if ($uinfin === null) {
-            throw new UinfinNotFoundException;
+        if ($sub === null) {
+            throw new SubNotFoundException;
         }
 
-        $personRequestResponse = $this->createPersonRequest($uinfin, $accessToken);
+        $personRequestResponse = $this->createPersonRequest($sub, $accessToken);
         $personRequestResponseBody = $personRequestResponse->getBody();
         $personRequestResponseContent = $personRequestResponseBody->getContents();
 
@@ -179,16 +179,16 @@ class LaravelMyinfoSg
     /**
      * Create Person Request.
      *
-     * @param $uinfin
+     * @param $sub
      * @param $validAccessToken
      * @return \Psr\Http\Message\ResponseInterface
      * @throws \Exception
      */
-    private function createPersonRequest($uinfin, $validAccessToken)
+    private function createPersonRequest($sub, $validAccessToken)
     {
         $guzzleClient = new Client;
 
-        $url = config('laravel-myinfo-sg.api_person_url')."/{$uinfin}/";
+        $url = config('laravel-myinfo-sg.api_person_url')."/{$sub}/";
 
         $params = [
             'client_id' => config('laravel-myinfo-sg.client_id'),
