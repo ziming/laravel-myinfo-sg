@@ -31,7 +31,7 @@ MYINFO_APP_PURPOSE="demonstrating MyInfo APIs"
 MYINFO_APP_ATTRIBUTES=uinfin,name,sex,race,nationality,dob,email,mobileno,regadd,housingtype,hdbtype,marital,edulevel,noa-basic,ownerprivate,cpfcontributions,cpfbalances
 
 MYINFO_APP_SIGNATURE_CERT_PRIVATE_KEY=file:///Users/your-username/your-laravel-app/storage/myinfo-ssl/stg-demoapp-client-privatekey-2018.pem
-MYINFO_SIGNATURE_CERT_PUBLIC_CERT=file:///Users/your-username/your-laravel-app/storage/myinfo-ssl/stg-auth-signing-public.pem
+MYINFO_SIGNATURE_CERT_PUBLIC_CERT=file:///Users/your-username/your-laravel-app/storage/myinfo-ssl/staging_myinfo_public_cert.cer
 
 # SANDBOX ENVIRONMENT (no PKI digital signature)
 MYINFO_AUTH_LEVEL=L0

@@ -18,7 +18,7 @@ class LaravelMyinfoSgServiceProvider extends ServiceProvider
             ], 'config');
 
             $this->publishes([
-                __DIR__.'/../myinfo-ssl/stg-auth-signing-public.pem' => storage_path('myinfo-ssl/stg-auth-signing-public.pem'),
+                __DIR__.'/../myinfo-ssl/staging_myinfo_public_cert.cer'         => storage_path('myinfo-ssl/staging_myinfo_public_cert.cer'),
                 __DIR__.'/../myinfo-ssl/stg-demoapp-client-privatekey-2018.pem' => storage_path('myinfo-ssl/stg-demoapp-client-privatekey-2018.pem'),
                 __DIR__.'/../myinfo-ssl/stg-demoapp-client-publiccert-2018.pem' => storage_path('myinfo-ssl/stg-demoapp-client-publiccert-2018.pem'),
             ], 'myinfo-ssl');
