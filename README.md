@@ -198,8 +198,10 @@ Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recen
 
 Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
-You may also contribute by using the referral links of some of the products or services I support below:
+Rather than donating to me, you may use 1 the referral links to the following products, services or charities that I 
+support below:
 
 - https://sg.yougov.com/en-sg/refer/X_TOE4BGGtrAFuhX0ZNq9w/ (YouGov Surveys)
 - https://www.argumentninja.com/a/p78lj (Argument Ninja Dojo Course)
 - https://www.humblebundle.com/monthly?refc=vOZEog (Humble Monthly Referral)
+- https://www.giving.sg
