@@ -4,6 +4,7 @@ namespace Ziming\LaravelMyinfoSg\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Ziming\LaravelMyinfoSg\Exceptions\InvalidStateException;
 use Ziming\LaravelMyinfoSg\LaravelMyinfoSg;
 
 class GetMyinfoPersonDataController extends Controller
@@ -18,6 +19,12 @@ class GetMyinfoPersonDataController extends Controller
      */
     public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg)
     {
+        $state = $request->get('state');
+
+        if ($state === null || $state !== $request->session()->pull('state')) {
+            throw new InvalidStateException;
+        }
+
         $personData = $laravelMyinfoSg->getMyinfoPersonData($request);
 
         $this->preResponseHook($request, $personData);

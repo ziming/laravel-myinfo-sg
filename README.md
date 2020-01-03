@@ -161,6 +161,7 @@ The list of exceptions are as follows
 use Ziming\LaravelMyinfoSg\Exceptions\AccessTokenNotFoundException;
 use Ziming\LaravelMyinfoSg\Exceptions\InvalidAccessTokenException;
 use Ziming\LaravelMyinfoSg\Exceptions\InvalidDataOrSignatureForPersonDataException;
+use Ziming\LaravelMyinfoSg\Exceptions\InvalidStateException;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoPersonDataNotFoundException;
 use Ziming\LaravelMyinfoSg\Exceptions\SubNotFoundException;
 ```
