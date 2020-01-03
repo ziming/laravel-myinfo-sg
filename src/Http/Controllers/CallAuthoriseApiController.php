@@ -2,6 +2,7 @@
 
 namespace Ziming\LaravelMyinfoSg\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Ziming\LaravelMyinfoSg\LaravelMyinfoSg;
 
@@ -14,8 +15,8 @@ class CallAuthoriseApiController extends Controller
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      * @throws \Exception
      */
-    public function __invoke(LaravelMyinfoSg $laravelMyinfoSg)
+    public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg)
     {
-        return redirect($laravelMyinfoSg->generateAuthoriseApiUrl());
+        return redirect($laravelMyinfoSg->generateAuthoriseApiUrl($request));
     }
 }

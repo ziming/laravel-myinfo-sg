@@ -4,6 +4,7 @@ namespace Ziming\LaravelMyinfoSg;
 
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Ziming\LaravelMyinfoSg\Exceptions\AccessTokenNotFoundException;
 use Ziming\LaravelMyinfoSg\Exceptions\InvalidAccessTokenException;
 use Ziming\LaravelMyinfoSg\Exceptions\InvalidDataOrSignatureForPersonDataException;
@@ -18,19 +19,23 @@ class LaravelMyinfoSg
      * @return string
      * @throws \Exception
      */
-    public function generateAuthoriseApiUrl() : string
+    public function generateAuthoriseApiUrl(Request $request) : string
     {
+        $state = Str::random(40);
+
         $query = http_build_query([
             'client_id' => config('laravel-myinfo-sg.client_id'),
             'attributes' => config('laravel-myinfo-sg.attributes'),
             'purpose' => config('laravel-myinfo-sg.purpose'),
-            'state' => random_int(PHP_INT_MIN, PHP_INT_MAX),
+            'state' => $state,
             'redirect_uri' => config('laravel-myinfo-sg.redirect_url'),
         ]);
 
         $query = urldecode($query);
 
         $redirectUri = config('laravel-myinfo-sg.api_authorise_url').'?'.$query;
+
+        $request->session()->put('state', $state);
 
         return $redirectUri;
     }
