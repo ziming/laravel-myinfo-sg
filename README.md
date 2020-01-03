@@ -175,7 +175,7 @@ authorisation api uri (The redirect to Singpass link) and to fetch MyInfo Person
 use Ziming\LaravelMyinfoSg\LaravelMyinfoSgFacade as LaravelMyinfoSg;
 
 // Get the Singpass URI and redirect to there
-return redirect(LaravelMyinfoSg::generateAuthoriseApiUrl(request()));
+return redirect(LaravelMyinfoSg::generateAuthoriseApiUrl($state));
 ```
 
 ```php
@@ -183,7 +183,7 @@ return redirect(LaravelMyinfoSg::generateAuthoriseApiUrl(request()));
 use Ziming\LaravelMyinfoSg\LaravelMyinfoSgFacade as LaravelMyinfoSg;
 
 // Get the Myinfo person data in an array with 'data' key
-$personData = LaravelMyinfoSg::getMyinfoPersonData(request());
+$personData = LaravelMyinfoSg::getMyinfoPersonData($code);
 
 // If you didn't want to return a json response with the person information in the 'data' key. You can do this
 return response()->json($personData['data']);

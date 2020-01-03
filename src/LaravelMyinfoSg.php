@@ -16,13 +16,11 @@ class LaravelMyinfoSg
 {
     /**
      * Generate MyInfo Authorise API URI to redirect to.
+     * @param  string  $state
      * @return string
-     * @throws \Exception
      */
-    public function generateAuthoriseApiUrl(Request $request) : string
+    public function generateAuthoriseApiUrl(string $state): string
     {
-        $state = Str::random(40);
-
         $query = http_build_query([
             'client_id' => config('laravel-myinfo-sg.client_id'),
             'attributes' => config('laravel-myinfo-sg.attributes'),
@@ -35,8 +33,6 @@ class LaravelMyinfoSg
 
         $redirectUri = config('laravel-myinfo-sg.api_authorise_url').'?'.$query;
 
-        $request->session()->put('state', $state);
-
         return $redirectUri;
     }
 
@@ -47,14 +43,12 @@ class LaravelMyinfoSg
     /**
      * Get MyInfo Person Data in an array with a 'data' key.
      *
-     * @param Request $request
+     * @param  string  $code
      * @return array The Person Data
      * @throws \Exception
      */
-    public function getMyinfoPersonData(Request $request)
+    public function getMyinfoPersonData(string $code)
     {
-        $code = $request->input('code');
-
         $tokenRequestResponse = $this->createTokenRequest($code);
 
         $tokenRequestResponseBody = $tokenRequestResponse->getBody();

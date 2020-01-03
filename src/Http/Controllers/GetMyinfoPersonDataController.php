@@ -25,7 +25,9 @@ class GetMyinfoPersonDataController extends Controller
             throw new InvalidStateException;
         }
 
-        $personData = $laravelMyinfoSg->getMyinfoPersonData($request);
+        $code = $request->input('code');
+
+        $personData = $laravelMyinfoSg->getMyinfoPersonData($code);
 
         $this->preResponseHook($request, $personData);
 
