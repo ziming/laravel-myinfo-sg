@@ -80,7 +80,8 @@ use Ziming\LaravelMyinfoSg\Http\Controllers\GetMyinfoPersonDataController;
 use Illuminate\Support\Facades\Route;
 
 Route::post(config('/go-singpass'), CallAuthoriseApiController::class)
-->name('myinfo.singpass');
+->name('myinfo.singpass')
+->middleware('web');
 
 Route::post('/fetch-myinfo-person-data', GetMyinfoPersonDataController::class)
 ->name('myinfo.person');
