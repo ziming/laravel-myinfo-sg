@@ -19,7 +19,7 @@ class GetMyinfoPersonDataController extends Controller
      */
     public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg)
     {
-        $state = $request->get('state');
+        $state = $request->input('state');
 
         if ($state === null || $state !== $request->session()->pull('state')) {
             throw new InvalidStateException;
