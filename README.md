@@ -10,6 +10,8 @@
 A working PHP Laravel Package for MyInfo Singapore. With the annoying, 
 time wasting hidden quirks of implementing it in PHP figured out. 
 
+<a href="https://www.ndi-api.gov.sg/library/trusted-data/myinfo/introduction" rel="noreferrer nofollow noopener" target="_blank">Official MyInfo Docs</a>
+
 ## Installation
 
 You can install the package via composer:
