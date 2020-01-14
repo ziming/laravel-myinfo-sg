@@ -21,6 +21,7 @@ class CallAuthoriseApiController extends Controller
         $state = Str::random(40);
         $authoriseApiUrl = $laravelMyinfoSg->generateAuthoriseApiUrl($state);
         $request->session()->put('state', $state);
+
         return redirect($authoriseApiUrl);
     }
 }

@@ -3,8 +3,6 @@
 namespace Ziming\LaravelMyinfoSg;
 
 use GuzzleHttp\Client;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Ziming\LaravelMyinfoSg\Exceptions\AccessTokenNotFoundException;
 use Ziming\LaravelMyinfoSg\Exceptions\InvalidAccessTokenException;
 use Ziming\LaravelMyinfoSg\Exceptions\InvalidDataOrSignatureForPersonDataException;
