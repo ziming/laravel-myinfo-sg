@@ -2,6 +2,7 @@
 
 namespace Ziming\LaravelMyinfoSg\Services;
 
+use Illuminate\Support\Facades\Log;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
 use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
@@ -55,7 +56,7 @@ final class MyinfoSecurityService
      */
     public static function generateAuthorizationHeader(string $url, array $params, string $method, string $contentType,
                                                        string $authType, string $appId,
-                                                       string $passphrase)
+                                                       string $passphrase): string
     {
         if ($authType === 'L2') {
             return self::generateSHA256withRSAHeader($url, $params, $method, $contentType, $appId, $passphrase);
@@ -100,6 +101,10 @@ final class MyinfoSecurityService
         $baseParamsStr = urldecode($baseParamsStr);
 
         $baseString = "{$method}&{$url}&{$baseParamsStr}";
+
+        if (config('laravel-myinfo-sg.debug_mode')) {
+            Log::debug('Base String (Pre Signing): ' . $baseString);
+        }
 
         $privateKey = openssl_pkey_get_private(config('laravel-myinfo-sg.private_key_path'), $passphrase);
 

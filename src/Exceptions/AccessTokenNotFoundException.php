@@ -23,7 +23,7 @@ class AccessTokenNotFoundException extends HttpException
      * Render the exception into an HTTP response.
      *
      * @param  \Illuminate\Http\Request
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function render()
     {
