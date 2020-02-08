@@ -26,8 +26,8 @@ class CallAuthoriseApiController extends Controller
 
         if (config('laravel-myinfo-sg.debug_mode')) {
             Log::debug('-- Authorise Call --');
-            Log::debug('Server Call Time: ' . Carbon::now()->toDayDateTimeString());
-            Log::debug('Web Request URL: ' . $authoriseApiUrl);
+            Log::debug('Server Call Time: '.Carbon::now()->toDayDateTimeString());
+            Log::debug('Web Request URL: '.$authoriseApiUrl);
         }
 
         return redirect($authoriseApiUrl);

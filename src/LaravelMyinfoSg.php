@@ -73,7 +73,7 @@ class LaravelMyinfoSg
      */
     private function createTokenRequest(string $code)
     {
-        $guzzleClient =  new Client;
+        $guzzleClient = new Client;
 
         $contentType = 'application/x-www-form-urlencoded';
         $method = 'POST';
@@ -94,9 +94,9 @@ class LaravelMyinfoSg
 
         if (config('laravel-myinfo-sg.debug_mode')) {
             Log::debug('-- Token Call --');
-            Log::debug('Server Call Time: ' . Carbon::now()->toDayDateTimeString());
-            Log::debug('Authorisation Code: ' . $code);
-            Log::debug('Web Request URL: ' . config('laravel-myinfo-sg.api_token_url'));
+            Log::debug('Server Call Time: '.Carbon::now()->toDayDateTimeString());
+            Log::debug('Authorisation Code: '.$code);
+            Log::debug('Web Request URL: '.config('laravel-myinfo-sg.api_token_url'));
         }
 
         if (config('laravel-myinfo-sg.auth_level') === 'L2') {
@@ -113,18 +113,14 @@ class LaravelMyinfoSg
             $headers['Authorization'] = $authHeaders;
 
             if (config('laravel-myinfo-sg.debug_mode')) {
-                Log::debug('Authorization Header: ' . $authHeaders);
+                Log::debug('Authorization Header: '.$authHeaders);
             }
         }
-
-
 
         $response = $guzzleClient->post(config('laravel-myinfo-sg.api_token_url'), [
             'form_params' => $params,
             'headers' => $headers,
         ]);
-
-
 
         return $response;
     }
@@ -216,9 +212,9 @@ class LaravelMyinfoSg
 
         if (config('laravel-myinfo-sg.debug_mode')) {
             Log::debug('-- Person Call --');
-            Log::debug('Server Call Time: ' . Carbon::now()->toDayDateTimeString());
-            Log::debug('Bearer Token: ' . $validAccessToken);
-            Log::debug('Web Request URL: ' . $url);
+            Log::debug('Server Call Time: '.Carbon::now()->toDayDateTimeString());
+            Log::debug('Bearer Token: '.$validAccessToken);
+            Log::debug('Web Request URL: '.$url);
         }
 
         $authHeaders = MyInfoSecurityService::generateAuthorizationHeader(
@@ -239,9 +235,9 @@ class LaravelMyinfoSg
 
         if (config('laravel-myinfo-sg.debug_mode')) {
             Log::debug('-- Person Call --');
-            Log::debug('Server Call Time: ' . Carbon::now()->toDayDateTimeString());
-            Log::debug('Bearer Token: ' . $validAccessToken);
-            Log::debug('Authorization Header: ' . $headers['Authorization']);
+            Log::debug('Server Call Time: '.Carbon::now()->toDayDateTimeString());
+            Log::debug('Bearer Token: '.$validAccessToken);
+            Log::debug('Authorization Header: '.$headers['Authorization']);
         }
 
         $response = $guzzleClient->get($url, [
