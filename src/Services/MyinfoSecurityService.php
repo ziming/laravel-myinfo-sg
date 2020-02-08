@@ -103,7 +103,7 @@ final class MyinfoSecurityService
         $baseString = "{$method}&{$url}&{$baseParamsStr}";
 
         if (config('laravel-myinfo-sg.debug_mode')) {
-            Log::debug('Base String (Pre Signing): ' . $baseString);
+            Log::debug('Base String (Pre Signing): '.$baseString);
         }
 
         $privateKey = openssl_pkey_get_private(config('laravel-myinfo-sg.private_key_path'), $passphrase);
