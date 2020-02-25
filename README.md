@@ -36,6 +36,8 @@ MYINFO_APP_ATTRIBUTES=uinfin,name,sex,race,nationality,dob,email,mobileno,regadd
 MYINFO_APP_SIGNATURE_CERT_PRIVATE_KEY=file:///Users/your-username/your-laravel-app/storage/myinfo-ssl/stg-demoapp-client-privatekey-2018.pem
 MYINFO_SIGNATURE_CERT_PUBLIC_CERT=file:///Users/your-username/your-laravel-app/storage/myinfo-ssl/staging_myinfo_public_cert.cer
 
+MYINFO_DEBUG_MODE=false
+
 # SANDBOX ENVIRONMENT (no PKI digital signature)
 MYINFO_AUTH_LEVEL=L0
 MYINFO_API_AUTHORISE=https://sandbox.api.myinfo.gov.sg/com/v3/authorise
@@ -225,3 +227,7 @@ support below:
 
 
 [![We offset our carbon footprint via Offset Earth](https://toolkit.offset.earth/carbonpositiveworkforce/badge/5e186e68516eb60018c5172b?black=true&landscape=true)](https://offset.earth/treeware)
+
+### Paid Support
+
+If for some reasons you need more urgent help with MyInfo integration but I'm busy, you may contact me at the email specified in composer.json for possible paid help.
