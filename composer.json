@@ -15,15 +15,16 @@
         }
     ],
     "require": {
-        "php": "^7.2",
+        "php": "^7.4",
         "ext-json": "*",
         "ext-openssl": "*",
+        "ext-gmp":"*",
         "guzzlehttp/guzzle": "^6.3",
-        "illuminate/support": "5.8.*|^6.0",
+        "illuminate/support": "5.8.*|^6.0|^7.0",
         "web-token/jwt-framework": "^2.0"
     },
     "require-dev": {
-        "orchestra/testbench": "3.8.*|^4.0",
+        "orchestra/testbench": "3.8.*|^4.0|^5.0",
         "phpunit/phpunit": "^8.0"
     },
     "autoload": {
