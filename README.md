@@ -5,7 +5,7 @@
 [![Quality Score](https://img.shields.io/scrutinizer/g/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://scrutinizer-ci.com/g/ziming/laravel-myinfo-sg)
 [![Total Downloads](https://img.shields.io/packagist/dt/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
 [![BCH compliance](https://bettercodehub.com/edge/badge/ziming/laravel-myinfo-sg?branch=master)](https://bettercodehub.com/)
-[![Buy us a tree](https://img.shields.io/badge/Treeware-%F0%9F%8C%B3-lightgreen?style=for-the-badge)](https://offset.earth/treeware?gift-trees)
+[![Buy us a tree](https://img.shields.io/badge/Treeware-%F0%9F%8C%B3-lightgreen?style=flat-square)](https://plant.treeware.earth/ziming/laravel-myinfo-sg)
 
 A working PHP Laravel Package for MyInfo Singapore. With the annoying, 
 time wasting hidden quirks of implementing it in PHP figured out. 
@@ -210,7 +210,7 @@ You’re free to use this package, but if it makes it to your production environ
 
 It’s now common knowledge that one of the best tools to tackle the climate crisis and keep our temperatures from rising above 1.5C is to <a href="https://www.bbc.co.uk/news/science-environment-48870920">plant trees</a>. If you support this package and contribute to the Treeware forest you’ll be creating employment for local families and restoring wildlife habitats.
 
-You can buy trees here [offset.earth/treeware](https://offset.earth/treeware?gift-trees)
+You can buy trees here [offset.earth/treeware](https://plant.treeware.earth/ziming/laravel-myinfo-sg)
 
 ### Other ways of Contributing
 
@@ -226,7 +226,7 @@ support below:
 - https://www.giving.sg (Giving.sg)
 
 
-[![We offset our carbon footprint via Offset Earth](https://toolkit.offset.earth/carbonpositiveworkforce/badge/5e186e68516eb60018c5172b?black=true&landscape=true)](https://offset.earth/treeware)
+[![We offset our carbon footprint via Offset Earth](https://toolkit.offset.earth/carbonpositiveworkforce/badge/5e186e68516eb60018c5172b?black=true&landscape=true)](https://plant.treeware.earth/ziming/laravel-myinfo-sg)
 
 ### Paid Support
 
