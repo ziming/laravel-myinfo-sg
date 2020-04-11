@@ -73,7 +73,7 @@ class LaravelMyinfoSg
      */
     private function createTokenRequest(string $code)
     {
-        $guzzleClient = new Client;
+        $guzzleClient = app(Client::class);
 
         $contentType = 'application/x-www-form-urlencoded';
         $method = 'POST';
@@ -196,7 +196,7 @@ class LaravelMyinfoSg
      */
     private function createPersonRequest($sub, $validAccessToken)
     {
-        $guzzleClient = new Client;
+        $guzzleClient = app(Client::class);
 
         $url = config('laravel-myinfo-sg.api_person_url')."/{$sub}/";
 
