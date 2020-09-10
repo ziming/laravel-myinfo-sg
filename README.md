@@ -4,7 +4,6 @@
 [![Build Status](https://img.shields.io/travis/ziming/laravel-myinfo-sg/master.svg?style=flat-square)](https://travis-ci.org/ziming/laravel-myinfo-sg)
 [![Quality Score](https://img.shields.io/scrutinizer/g/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://scrutinizer-ci.com/g/ziming/laravel-myinfo-sg)
 [![Total Downloads](https://img.shields.io/packagist/dt/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
-[![BCH compliance](https://bettercodehub.com/edge/badge/ziming/laravel-myinfo-sg?branch=master)](https://bettercodehub.com/)
 [![Buy us a tree](https://img.shields.io/badge/Treeware-%F0%9F%8C%B3-lightgreen?style=flat-square)](https://plant.treeware.earth/ziming/laravel-myinfo-sg)
 
 A working PHP Laravel Package for MyInfo Singapore. With the annoying, 
@@ -130,10 +129,10 @@ class Handler extends ExceptionHandler
     /**
      * Report or log an exception.
      *
-     * @param  \Exception  $exception
+     * @param  \Throwable  $exception
      * @return void
      */
-    public function report(Exception $exception)
+    public function report(\Throwable $exception)
     {
         parent::report($exception);
     }
@@ -142,10 +141,10 @@ class Handler extends ExceptionHandler
      * Render an exception into an HTTP response.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \Exception  $exception
+     * @param  \Throwable  $exception
      * @return \Illuminate\Http\Response
      */
-    public function render($request, Exception $exception)
+    public function render($request, \Throwable $exception)
     {
         // Example of an override. You may override it via Service Container binding too
         if ($exception instanceof AccessTokenNotFoundException && $request->wantsJson()) {
