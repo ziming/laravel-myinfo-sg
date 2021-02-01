@@ -1,7 +1,6 @@
 # Laravel MyInfo Singapore
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
-[![Build Status](https://img.shields.io/travis/ziming/laravel-myinfo-sg/master.svg?style=flat-square)](https://travis-ci.org/ziming/laravel-myinfo-sg)
 [![Quality Score](https://img.shields.io/scrutinizer/g/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://scrutinizer-ci.com/g/ziming/laravel-myinfo-sg)
 [![Total Downloads](https://img.shields.io/packagist/dt/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
 [![Buy us a tree](https://img.shields.io/badge/Treeware-%F0%9F%8C%B3-lightgreen?style=flat-square)](https://plant.treeware.earth/ziming/laravel-myinfo-sg)
