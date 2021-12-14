@@ -209,9 +209,6 @@ It’s now common knowledge that one of the best tools to tackle the climate cri
 
 You can buy trees here [offset.earth/treeware](https://plant.treeware.earth/ziming/laravel-myinfo-sg)
 
-
-[![We offset our carbon footprint via Offset Earth](https://toolkit.offset.earth/carbonpositiveworkforce/badge/5e186e68516eb60018c5172b?black=true&landscape=true)](https://plant.treeware.earth/ziming/laravel-myinfo-sg)
-
 ### Paid Support
 
 If for some reasons you need more urgent help with MyInfo integration but I'm busy, you may contact me at the email specified in composer.json for possible paid help.
