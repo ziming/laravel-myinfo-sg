@@ -199,7 +199,6 @@ do logging or other stuffs before returning the person data.
 
 Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
 
-
 ## Contributing
 
 ### Treeware
@@ -209,19 +208,6 @@ You’re free to use this package, but if it makes it to your production environ
 It’s now common knowledge that one of the best tools to tackle the climate crisis and keep our temperatures from rising above 1.5C is to <a href="https://www.bbc.co.uk/news/science-environment-48870920">plant trees</a>. If you support this package and contribute to the Treeware forest you’ll be creating employment for local families and restoring wildlife habitats.
 
 You can buy trees here [offset.earth/treeware](https://plant.treeware.earth/ziming/laravel-myinfo-sg)
-
-### Other ways of Contributing
-
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-Rather than donating to support me, you may use 1 the referral links to the following products, services or charities that I 
-support below:
-
-- https://www.sos.org.sg (Samaritans of Singapore)
-- https://sg.yougov.com/en-sg/refer/X_TOE4BGGtrAFuhX0ZNq9w/ (YouGov Surveys)
-- https://www.argumentninja.com/a/p78lj (Argument Ninja Dojo Course)
-- https://www.humblebundle.com/monthly?refc=vOZEog (Humble Monthly Referral)
-- https://www.giving.sg (Giving.sg)
 
 
 [![We offset our carbon footprint via Offset Earth](https://toolkit.offset.earth/carbonpositiveworkforce/badge/5e186e68516eb60018c5172b?black=true&landscape=true)](https://plant.treeware.earth/ziming/laravel-myinfo-sg)
