@@ -24,11 +24,9 @@ final class MyinfoSecurityService
     /**
      * Verify JWS.
      *
-     * @param string $accessToken
-     * @return mixed|null
      * @throws \Exception
      */
-    public static function verifyJWS(string $accessToken)
+    public static function verifyJWS(string $accessToken): ?array
     {
         $algorithmManager = new AlgorithmManager([new RS256]);
         $jwk = JWKFactory::createFromCertificateFile(config('laravel-myinfo-sg.public_cert_path'));
@@ -44,14 +42,6 @@ final class MyinfoSecurityService
     /**
      * Generate Authorization Header.
      *
-     * @param string $url
-     * @param array $params
-     * @param string $method
-     * @param string $contentType
-     * @param string $authType
-     * @param string $appId
-     * @param string $passphrase
-     * @return string
      * @throws \Exception
      */
     public static function generateAuthorizationHeader(string $url, array $params, string $method, string $contentType,
@@ -68,13 +58,6 @@ final class MyinfoSecurityService
     /**
      * Generate SHA256 with RSA Header.
      *
-     * @param string $url
-     * @param array $params
-     * @param string $method
-     * @param string $contentType
-     * @param string $appId
-     * @param string $passphrase
-     * @return string
      * @throws \Exception
      */
     private static function generateSHA256withRSAHeader(string $url, array $params, string $method, string $contentType, string $appId, string $passphrase)
@@ -123,9 +106,8 @@ final class MyinfoSecurityService
     }
 
     /**
-     * @param string $personDataToken
-     * @param string $privateKeyPath
-     * @return string
+     * Decrypt JWE
+     *
      * @throws \Exception
      */
     public static function decryptJWE(string $personDataToken, string $privateKeyPath)

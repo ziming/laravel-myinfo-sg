@@ -16,8 +16,6 @@ class LaravelMyinfoSg
 {
     /**
      * Generate MyInfo Authorise API URI to redirect to.
-     * @param  string  $state
-     * @return string
      */
     public function generateAuthoriseApiUrl(string $state): string
     {
@@ -43,22 +41,18 @@ class LaravelMyinfoSg
     /**
      * Get MyInfo Person Data in an array with a 'data' key.
      *
-     * @param  string  $code
-     * @return array The Person Data
      * @throws \Exception
      */
-    public function getMyinfoPersonData(string $code)
+    public function getMyinfoPersonData(string $code): array
     {
         $tokenRequestResponse = $this->createTokenRequest($code);
 
         $tokenRequestResponseBody = $tokenRequestResponse->getBody();
 
-        if ($tokenRequestResponseBody) {
-            $decoded = json_decode($tokenRequestResponseBody, true);
+        $decoded = json_decode($tokenRequestResponseBody, true);
 
-            if ($decoded) {
-                return $this->callPersonAPI($decoded['access_token']);
-            }
+        if ($decoded) {
+            return $this->callPersonAPI($decoded['access_token']);
         }
 
         throw new AccessTokenNotFoundException;
@@ -67,11 +61,9 @@ class LaravelMyinfoSg
     /**
      * Create Token Request.
      *
-     * @param string $code
-     * @return \Psr\Http\Message\ResponseInterface
      * @throws \Exception
      */
-    private function createTokenRequest(string $code)
+    private function createTokenRequest(string $code): \Psr\Http\Message\ResponseInterface
     {
         $guzzleClient = app(Client::class);
 
@@ -128,11 +120,9 @@ class LaravelMyinfoSg
     /**
      * Call Person API.
      *
-     * @param $accessToken
-     * @return array
      * @throws \Exception
      */
-    private function callPersonAPI($accessToken)
+    private function callPersonAPI(string $accessToken): array
     {
         $decoded = MyinfoSecurityService::verifyJWS($accessToken);
 
@@ -189,12 +179,9 @@ class LaravelMyinfoSg
     /**
      * Create Person Request.
      *
-     * @param $sub
-     * @param $validAccessToken
-     * @return \Psr\Http\Message\ResponseInterface
      * @throws \Exception
      */
-    private function createPersonRequest($sub, $validAccessToken)
+    private function createPersonRequest(string $sub, string $validAccessToken): \Psr\Http\Message\ResponseInterface
     {
         $guzzleClient = app(Client::class);
 

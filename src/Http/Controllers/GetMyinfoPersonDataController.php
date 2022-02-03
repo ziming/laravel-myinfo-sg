@@ -12,12 +12,9 @@ class GetMyinfoPersonDataController extends Controller
     /**
      * Fetch MyInfo Person Data after authorization code is given back.
      *
-     * @param Request $request
-     * @param LaravelMyinfoSg $laravelMyinfoSg
-     * @return \Illuminate\Http\JsonResponse
      * @throws \Exception
      */
-    public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg)
+    public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg): \Illuminate\Http\JsonResponse
     {
         $state = $request->input('state');
 
@@ -34,10 +31,6 @@ class GetMyinfoPersonDataController extends Controller
         return response()->json($personData);
     }
 
-    /**
-     * @param Request $request
-     * @param array $personData
-     */
     protected function preResponseHook(Request $request, array $personData)
     {
         // Extend this class, override this method.
