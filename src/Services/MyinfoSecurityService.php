@@ -36,7 +36,7 @@ final class MyinfoSecurityService
         $jws = $serializerManager->unserialize($accessToken);
         $verified = $jwsVerifier->verifyWithKey($jws, $jwk, 0);
 
-        return $verified ? json_decode($jws->getPayload(), true) : null;
+        return $verified ? json_decode($jws->getPayload(), true, 512, JSON_THROW_ON_ERROR) : null;
     }
 
     /**
