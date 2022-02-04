@@ -2,6 +2,7 @@
 
 namespace Ziming\LaravelMyinfoSg\Http\Controllers;
 
+use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Ziming\LaravelMyinfoSg\Exceptions\InvalidStateException;
@@ -14,7 +15,7 @@ class GetMyinfoPersonDataController extends Controller
      *
      * @throws \Exception
      */
-    public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg): \Illuminate\Http\JsonResponse
+    public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg, ResponseFactory $responseFactory): \Illuminate\Http\JsonResponse
     {
         $state = $request->input('state');
 
@@ -28,7 +29,7 @@ class GetMyinfoPersonDataController extends Controller
 
         $this->preResponseHook($request, $personData);
 
-        return response()->json($personData);
+        return $responseFactory->json($personData);
     }
 
     protected function preResponseHook(Request $request, array $personData)

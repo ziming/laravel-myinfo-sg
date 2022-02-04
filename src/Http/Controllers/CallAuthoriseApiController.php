@@ -5,6 +5,7 @@ namespace Ziming\LaravelMyinfoSg\Http\Controllers;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Routing\Redirector;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Ziming\LaravelMyinfoSg\LaravelMyinfoSg;
@@ -16,7 +17,7 @@ class CallAuthoriseApiController extends Controller
      *
      * @throws \Exception
      */
-    public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg): \Illuminate\Routing\Redirector|\Illuminate\Http\RedirectResponse
+    public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg, Redirector $redirector): \Illuminate\Routing\Redirector|\Illuminate\Http\RedirectResponse
     {
         $state = Str::random(40);
         $authoriseApiUrl = $laravelMyinfoSg->generateAuthoriseApiUrl($state);
@@ -28,6 +29,6 @@ class CallAuthoriseApiController extends Controller
             Log::debug('Web Request URL: '.$authoriseApiUrl);
         }
 
-        return redirect($authoriseApiUrl);
+        return $redirector->to($authoriseApiUrl);
     }
 }
