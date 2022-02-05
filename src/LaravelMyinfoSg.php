@@ -49,7 +49,7 @@ class LaravelMyinfoSg
 
         $tokenRequestResponseBody = $tokenRequestResponse->getBody();
 
-        $decoded = json_decode($tokenRequestResponseBody, true, 512, JSON_THROW_ON_ERROR);
+        $decoded = json_decode($tokenRequestResponseBody, true);
 
         if ($decoded) {
             return $this->callPersonAPI($decoded['access_token']);
@@ -141,7 +141,7 @@ class LaravelMyinfoSg
         $personRequestResponseContent = $personRequestResponseBody->getContents();
 
         if ($personRequestResponseContent) {
-            $personData = json_decode($personRequestResponseContent, true, 512, JSON_THROW_ON_ERROR);
+            $personData = json_decode($personRequestResponseContent, true);
 
             $authLevel = config('laravel-myinfo-sg.auth_level');
 
