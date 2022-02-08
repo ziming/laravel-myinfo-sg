@@ -4,18 +4,15 @@ namespace Ziming\LaravelMyinfoSg;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Spatie\LaravelPackageTools\Package;
+use Spatie\LaravelPackageTools\PackageServiceProvider;
 
-class LaravelMyinfoSgServiceProvider extends ServiceProvider
+class LaravelMyinfoSgServiceProvider extends PackageServiceProvider
 {
-    /**
-     * Bootstrap the application services.
-     */
-    public function boot()
+    public function bootingPackage()
     {
+        parent::bootingPackage();
         if ($this->app->runningInConsole()) {
-            $this->publishes([
-                __DIR__.'/../config/config.php' => config_path('laravel-myinfo-sg.php'),
-            ], 'config');
 
             $this->publishes([
                 __DIR__.'/../myinfo-ssl/staging_myinfo_public_cert.cer'         => storage_path('myinfo-ssl/staging_myinfo_public_cert.cer'),
@@ -23,27 +20,23 @@ class LaravelMyinfoSgServiceProvider extends ServiceProvider
                 __DIR__.'/../myinfo-ssl/stg-demoapp-client-publiccert-2018.pem' => storage_path('myinfo-ssl/stg-demoapp-client-publiccert-2018.pem'),
             ], 'myinfo-ssl');
         }
+    }
+
+    public function configurePackage(Package $package): void
+    {
+        $package
+            ->name('laravel-myinfo-sg')
+            ->hasConfigFile('config');
 
         if (! config('laravel-myinfo-sg.enable_default_myinfo_routes')) {
             return;
-        }
+        };
 
-        Route::post(config('laravel-myinfo-sg.call_authorise_api_url'), config('laravel-myinfo-sg.call_authorise_api_controller'))
-            ->name('myinfo.singpass')
-            ->middleware('web');
-
-        Route::post(config('laravel-myinfo-sg.get_myinfo_person_data_url'), config('laravel-myinfo-sg.get_myinfo_person_data_controller'))->name('myinfo.person');
+        $package->hasRoute('web');
     }
 
-    /**
-     * Register the application services.
-     */
-    public function register()
+    public function packageRegistered(): void
     {
-        // Automatically apply the package configuration
-        $this->mergeConfigFrom(__DIR__.'/../config/config.php', 'laravel-myinfo-sg');
-
-        // Register the main class to use with the facade
-        $this->app->bind('laravel-myinfo-sg', fn() => new LaravelMyinfoSg());
+        $this->app->bind('laravel-myinfo-sg', LaravelMyinfoSg::class);
     }
 }

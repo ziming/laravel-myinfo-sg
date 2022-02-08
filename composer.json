@@ -21,12 +21,17 @@
         "ext-gmp": "*",
         "guzzlehttp/guzzle": "^7.0",
         "illuminate/contracts": "^8.0||^9.0",
-        "web-token/jwt-framework": "^2.2"
+        "web-token/jwt-framework": "^2.2",
+        "spatie/laravel-package-tools": "^1.4.3"
     },
     "require-dev": {
-        "orchestra/testbench": "^6.0||^7.0",
-        "phpunit/phpunit": "^9.0",
-        "rector/rector": "^0.12.15"
+        "brianium/paratest": "^6.2",
+        "nunomaduro/collision": "^5.10||^6.0",
+        "orchestra/testbench": "^6.23||^7.0",
+        "phpunit/phpunit": "^9.5.10",
+        "rector/rector": "^0.12.15",
+        "spatie/laravel-ray": "^1.23",
+        "vimeo/psalm": "^4.8"
     },
     "autoload": {
         "psr-4": {
@@ -39,9 +44,9 @@
         }
     },
     "scripts": {
-        "test": "vendor/bin/phpunit",
+        "psalm": "vendor/bin/psalm",
+        "test": "./vendor/bin/testbench package:test --parallel --no-coverage",
         "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
-
     },
     "config": {
         "sort-packages": true
