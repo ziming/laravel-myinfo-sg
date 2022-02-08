@@ -1,7 +1,6 @@
 # Laravel MyInfo Singapore
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
-[![Quality Score](https://img.shields.io/scrutinizer/g/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://scrutinizer-ci.com/g/ziming/laravel-myinfo-sg)
 [![Total Downloads](https://img.shields.io/packagist/dt/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
 [![Buy us a tree](https://img.shields.io/badge/Treeware-%F0%9F%8C%B3-lightgreen?style=flat-square)](https://plant.treeware.earth/ziming/laravel-myinfo-sg)
 
@@ -56,7 +55,7 @@ MYINFO_GET_PERSON_DATA_URL=/myinfo-person
 Lastly, publish the config file
 
 ```bash
-php artisan vendor:publish --provider="Ziming\LaravelMyinfoSg\LaravelMyinfoSgServiceProvider" --tag="config"
+php artisan vendor:publish --provider="Ziming\LaravelMyinfoSg\LaravelMyinfoSgServiceProvider" --tag="laravel-myinfo-sg-config"
 ```
 
 You may also wish to publish the MyInfo official nodejs demo app ssl files as well to storage/myinfo-ssl. 
@@ -82,7 +81,7 @@ use Ziming\LaravelMyinfoSg\Http\Controllers\CallAuthoriseApiController;
 use Ziming\LaravelMyinfoSg\Http\Controllers\GetMyinfoPersonDataController;
 use Illuminate\Support\Facades\Route;
 
-Route::post(config('/go-singpass'), CallAuthoriseApiController::class)
+Route::post('/go-singpass'), CallAuthoriseApiController::class)
 ->name('myinfo.singpass')
 ->middleware('web');
 
