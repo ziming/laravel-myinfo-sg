@@ -14,17 +14,32 @@ use Ziming\LaravelMyinfoSg\Services\MyinfoSecurityService;
 
 class LaravelMyinfoSg
 {
+    public function __construct(
+        private ?string $clientId = null,
+        private ?string $clientSecret = null,
+        private ?string $attributes = null,
+        private ?string $purpose = null,
+        private ?string $redirectUri = null,
+    )
+    {
+        $this->clientId = $clientId ?? config('laravel-myinfo-sg.client_id');
+        $this->clientSecret = $clientSecret ?? config('laravel-myinfo-sg.client_secret');
+        $this->attributes = $attributes ?? config('laravel-myinfo-sg.attributes');
+        $this->purpose = $purpose ?? config('laravel-myinfo-sg.purpose');
+        $this->redirectUri = $redirectUri ?? config('laravel-myinfo-sg.redirect_url');
+    }
+
     /**
      * Generate MyInfo Authorise API URI to redirect to.
      */
     public function generateAuthoriseApiUrl(string $state): string
     {
         $query = http_build_query([
-            'client_id' => config('laravel-myinfo-sg.client_id'),
-            'attributes' => config('laravel-myinfo-sg.attributes'),
-            'purpose' => config('laravel-myinfo-sg.purpose'),
+            'client_id' => $this->clientId,
+            'attributes' => $this->attributes,
+            'purpose' => $this->purpose,
             'state' => $state,
-            'redirect_uri' => config('laravel-myinfo-sg.redirect_url'),
+            'redirect_uri' => $this->redirectUri,
         ]);
 
         $query = urldecode($query);
@@ -72,9 +87,9 @@ class LaravelMyinfoSg
 
         $params = [
             'grant_type' => 'authorization_code',
-            'redirect_uri' => config('laravel-myinfo-sg.redirect_url'),
-            'client_id' => config('laravel-myinfo-sg.client_id'),
-            'client_secret' => config('laravel-myinfo-sg.client_secret'),
+            'redirect_uri' => $this->redirectUri,
+            'client_id' => $this->clientId,
+            'client_secret' => $this->clientSecret,
             'code' => $code,
         ];
 
@@ -98,8 +113,8 @@ class LaravelMyinfoSg
                 $method,
                 $contentType,
                 config('laravel-myinfo-sg.auth_level'),
-                config('laravel-myinfo-sg.client_id'),
-                config('laravel-myinfo-sg.client_secret')
+                $this->clientId,
+                $this->clientSecret,
             );
 
             $headers['Authorization'] = $authHeaders;
@@ -154,7 +169,8 @@ class LaravelMyinfoSg
 
                 $personDataJWS = MyInfoSecurityService::decryptJWE(
                     $personData,
-                    config('laravel-myinfo-sg.private_key_path')
+                    config('laravel-myinfo-sg.private_key_path'),
+                    $this->clientSecret
                 );
 
                 if ($personDataJWS === null) {
@@ -188,8 +204,8 @@ class LaravelMyinfoSg
         $url = config('laravel-myinfo-sg.api_person_url')."/{$sub}/";
 
         $params = [
-            'client_id' => config('laravel-myinfo-sg.client_id'),
-            'attributes' => config('laravel-myinfo-sg.attributes'),
+            'client_id' => $this->clientId,
+            'attributes' => $this->attributes,
         ];
 
         $headers = [
@@ -210,8 +226,8 @@ class LaravelMyinfoSg
             'GET',
             '',
             config('laravel-myinfo-sg.auth_level'),
-            config('laravel-myinfo-sg.client_id'),
-            config('laravel-myinfo-sg.client_secret')
+            $this->clientId,
+            $this->clientSecret
         );
 
         if ($authHeaders) {

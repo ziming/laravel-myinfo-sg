@@ -110,15 +110,18 @@ final class MyinfoSecurityService
      *
      * @throws \Exception
      */
-    public static function decryptJWE(string $personDataToken, string $privateKeyPath)
+    public static function decryptJWE(string $personDataToken, string $privateKeyPath, string $passphrase = null)
     {
+        // $passphrase is by default null for backward compatibility purpose as I want to avoid a major version bump
+        $passphrase = ($passphrase === null) ? config('laravel-myinfo-sg.client_secret') : $passphrase;
+
         $jwk = JWKFactory::createFromKeyFile(
             $privateKeyPath,
-            config('laravel-myinfo-sg.client_secret')
+            $passphrase
         );
 
         $serializerManager = new JWESerializerManager([
-            new \Jose\Component\Encryption\Serializer\CompactSerializer(),
+            new \Jose\Component\Encryption\Serializer\CompactSerializer,
         ]);
 
         $jwe = $serializerManager->unserialize($personDataToken);
