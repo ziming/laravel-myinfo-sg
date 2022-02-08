@@ -14,10 +14,10 @@ return [
     'public_cert_path' => env('MYINFO_SIGNATURE_CERT_PUBLIC_CERT'),
     'private_key_path' => env('MYINFO_APP_SIGNATURE_CERT_PRIVATE_KEY'),
 
-    'auth_level'        => env('MYINFO_AUTH_LEVEL'),
-    'api_authorise_url' => env('MYINFO_API_AUTHORISE'),
-    'api_token_url'     => env('MYINFO_API_TOKEN'),
-    'api_person_url'    => env('MYINFO_API_PERSON'),
+    'auth_level'        => env('MYINFO_AUTH_LEVEL', 'L2'),
+    'api_authorise_url' => env('MYINFO_API_AUTHORISE', 'https://test.api.myinfo.gov.sg/com/v3/authorise'),
+    'api_token_url'     => env('MYINFO_API_TOKEN', 'https://test.api.myinfo.gov.sg/com/v3/token'),
+    'api_person_url'    => env('MYINFO_API_PERSON', 'https://test.api.myinfo.gov.sg/com/v3/person'),
 
     // If this is false, call_authorise_api_url and get_myinfo_person_data_url routes would not be registered
     'enable_default_myinfo_routes' => true,
