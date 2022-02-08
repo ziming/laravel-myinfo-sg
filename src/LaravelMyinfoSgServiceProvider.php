@@ -37,6 +37,6 @@ class LaravelMyinfoSgServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
-        $this->app->bind('laravel-myinfo-sg', LaravelMyinfoSg::class);
+        $this->app->singleton('laravel-myinfo-sg', LaravelMyinfoSg::class);
     }
 }
