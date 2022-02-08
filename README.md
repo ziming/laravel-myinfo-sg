@@ -55,7 +55,7 @@ MYINFO_GET_PERSON_DATA_URL=/myinfo-person
 Lastly, publish the config file
 
 ```bash
-php artisan vendor:publish --provider="Ziming\LaravelMyinfoSg\LaravelMyinfoSgServiceProvider" --tag="laravel-myinfo-sg-config"
+php artisan vendor:publish --provider="Ziming\LaravelMyinfoSg\LaravelMyinfoSgServiceProvider" --tag="myinfo-sg-config"
 ```
 
 You may also wish to publish the MyInfo official nodejs demo app ssl files as well to storage/myinfo-ssl. 
