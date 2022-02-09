@@ -21,7 +21,14 @@ class LaravelMyinfoSgTest extends TestCase
         $state = Str::random(40);
         $redirectUri = $this->laravelMyinfoSg->generateAuthoriseApiUrl($state);
 
-        $this->assertStringStartsWith(config('laravel-myinfo-sg.api_authorise_url'), $redirectUri);
+        $this->assertStringStartsWith(config('laravel-myinfo-sg.api_authorise_url') . '?', $redirectUri);
+        $this->assertStringContainsString('client_id=' . config('laravel-myinfo-sg.client_id'), $redirectUri);
+        $this->assertStringContainsString('attributes=' . config('laravel-myinfo-sg.attributes'), $redirectUri);
+        $this->assertStringContainsString('purpose=' . config('laravel-myinfo-sg.purpose'), $redirectUri);
+        $this->assertStringContainsString('redirect_uri=' . config('laravel-myinfo-sg.redirect_url'), $redirectUri);
+
+        // commented out below as it will just return 404 as they likely
+        // did some check to see if it comes from a real browser
 
         // $response = $this->get($redirectUri);
         //$response->assertSuccessful();
