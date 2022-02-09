@@ -27,6 +27,7 @@ class LaravelMyinfoSgTest extends TestCase
         $this->assertStringContainsString('purpose=' . config('laravel-myinfo-sg.purpose'), $redirectUri);
         $this->assertStringContainsString('redirect_uri=' . config('laravel-myinfo-sg.redirect_url'), $redirectUri);
 
+        $this->assertStringNotContainsString('client_secret', $redirectUri);
         // commented out below as it will just return 404 as they likely
         // did some check to see if it comes from a real browser
 
