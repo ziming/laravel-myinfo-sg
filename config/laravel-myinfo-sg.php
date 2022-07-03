@@ -13,6 +13,8 @@ return [
 
     'public_cert_path' => env('MYINFO_SIGNATURE_CERT_PUBLIC_CERT'),
     'private_key_path' => env('MYINFO_APP_SIGNATURE_CERT_PRIVATE_KEY'),
+    'public_cert_content' => env('MYINFO_SIGNATURE_CERT_PUBLIC_CERT_CONTENT'),
+    'private_key_content' => env('MYINFO_SIGNATURE_CERT_PRIVATE_KEY_CONTENT'),
 
     'auth_level'        => env('MYINFO_AUTH_LEVEL', 'L2'),
     'api_authorise_url' => env('MYINFO_API_AUTHORISE', 'https://test.api.myinfo.gov.sg/com/v3/authorise'),

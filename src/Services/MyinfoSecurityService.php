@@ -29,7 +29,13 @@ final class MyinfoSecurityService
     public static function verifyJWS(string $accessToken): ?array
     {
         $algorithmManager = new AlgorithmManager([new RS256]);
-        $jwk = JWKFactory::createFromCertificateFile(config('laravel-myinfo-sg.public_cert_path'));
+
+        if (config('laravel-myinfo-sg.public_cert_content')) {
+            $jwk = JWKFactory::createFromKey(config('laravel-myinfo-sg.public_cert_content'));
+        } else {
+            $jwk = JWKFactory::createFromCertificateFile(config('laravel-myinfo-sg.public_cert_path'));
+        }
+
         $jwsVerifier = new JWSVerifier($algorithmManager);
         $serializerManager = new JWSSerializerManager([new CompactSerializer]);
 
@@ -89,7 +95,11 @@ final class MyinfoSecurityService
             Log::debug('Base String (Pre Signing): '.$baseString);
         }
 
-        $privateKey = openssl_pkey_get_private(config('laravel-myinfo-sg.private_key_path'), $passphrase);
+        if (config('laravel-myinfo-sg.private_key_content')) {
+            $privateKey = openssl_pkey_get_private(config('laravel-myinfo-sg.private_key_content'), $passphrase);
+        } else {
+            $privateKey = openssl_pkey_get_private(config('laravel-myinfo-sg.private_key_path'), $passphrase);
+        }
 
         openssl_sign($baseString, $signature, $privateKey, 'sha256WithRSAEncryption');
 
