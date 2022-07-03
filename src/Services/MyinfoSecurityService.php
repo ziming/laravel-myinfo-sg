@@ -125,10 +125,18 @@ final class MyinfoSecurityService
         // $passphrase is by default null for backward compatibility purpose as I want to avoid a major version bump
         $passphrase = ($passphrase === null) ? config('laravel-myinfo-sg.client_secret') : $passphrase;
 
-        $jwk = JWKFactory::createFromKeyFile(
-            $privateKeyPath,
-            $passphrase
-        );
+        if (config('laravel-myinfo-sg.private_key_content')) {
+            $jwk = JWKFactory::createFromKey(
+                config('laravel-myinfo-sg.private_key_content'),
+                $passphrase
+            );
+        } else {
+            $jwk = JWKFactory::createFromKeyFile(
+                $privateKeyPath,
+                $passphrase
+            );
+        }
+
 
         $serializerManager = new JWESerializerManager([
             new \Jose\Component\Encryption\Serializer\CompactSerializer,
