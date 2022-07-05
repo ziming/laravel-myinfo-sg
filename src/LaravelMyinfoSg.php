@@ -250,4 +250,13 @@ class LaravelMyinfoSg
 
         return $response;
     }
+
+    public function setAttributes(array|string $attributes)
+    {
+        if (is_string($attributes)) {
+            $this->attributes = $attributes;
+        } elseif (is_array($attributes)) {
+            $this->attributes = join(',', $attributes);
+        }
+    }
 }
