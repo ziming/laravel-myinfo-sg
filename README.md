@@ -207,3 +207,6 @@ You’re free to use this package, but if it makes it to your production environ
 It’s now common knowledge that one of the best tools to tackle the climate crisis and keep our temperatures from rising above 1.5C is to <a href="https://www.bbc.co.uk/news/science-environment-48870920">plant trees</a>. If you support this package and contribute to the Treeware forest you’ll be creating employment for local families and restoring wildlife habitats.
 
 You can buy trees here [offset.earth/treeware](https://plant.treeware.earth/ziming/laravel-myinfo-sg)
+
+## I am Hiring
+Hiring for my employer now, if you are interested to work with me, feel free to contact me at the email in composer.json to discuss
