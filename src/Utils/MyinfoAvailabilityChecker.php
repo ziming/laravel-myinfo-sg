@@ -13,7 +13,7 @@ use Illuminate\Support\Carbon;
  * Check the link below for changes to scheduled downtime.
  * https://api.singpass.gov.sg/library/myinfo/developers/implementation-downtimes
  */
-class MyinfoAvailabilityChecker
+final class MyinfoAvailabilityChecker
 {
     public static function cpfbUnavailable(): bool
     {
