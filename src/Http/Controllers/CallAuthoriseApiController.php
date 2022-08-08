@@ -2,6 +2,8 @@
 
 namespace Ziming\LaravelMyinfoSg\Http\Controllers;
 
+use Exception;
+use Illuminate\Http\RedirectResponse;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -15,9 +17,9 @@ class CallAuthoriseApiController extends Controller
     /**
      * Redirects to Singpass for user to give permission to fetch MyInfo Data.
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg, Redirector $redirector): \Illuminate\Routing\Redirector|\Illuminate\Http\RedirectResponse
+    public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg, Redirector $redirector): Redirector|RedirectResponse
     {
         $state = Str::random(40);
         $authoriseApiUrl = $laravelMyinfoSg->generateAuthoriseApiUrl($state);

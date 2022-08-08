@@ -2,6 +2,8 @@
 
 namespace Ziming\LaravelMyinfoSg;
 
+use Exception;
+use Psr\Http\Message\ResponseInterface;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
@@ -52,11 +54,11 @@ class LaravelMyinfoSg
     /**
      * Everything below will be related to Getting MyInfo Person Data.
      */
-
     /**
      * Get MyInfo Person Data in an array with a 'data' key.
      *
-     * @throws \Exception
+     * @throws Exception
+     * @return array<string, mixed>|array<string, mixed[]>
      */
     public function getMyinfoPersonData(string $code): array
     {
@@ -76,9 +78,9 @@ class LaravelMyinfoSg
     /**
      * Create Token Request.
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    private function createTokenRequest(string $code): \Psr\Http\Message\ResponseInterface
+    private function createTokenRequest(string $code): ResponseInterface
     {
         $guzzleClient = new Client;
 
@@ -135,7 +137,8 @@ class LaravelMyinfoSg
     /**
      * Call Person API.
      *
-     * @throws \Exception
+     * @throws Exception
+     * @return array<string, mixed>|array<string, mixed[]>
      */
     private function callPersonAPI(string $accessToken): array
     {
@@ -195,9 +198,9 @@ class LaravelMyinfoSg
     /**
      * Create Person Request.
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    private function createPersonRequest(string $sub, string $validAccessToken): \Psr\Http\Message\ResponseInterface
+    private function createPersonRequest(string $sub, string $validAccessToken): ResponseInterface
     {
         $guzzleClient = new Client;
 
@@ -251,7 +254,7 @@ class LaravelMyinfoSg
         return $response;
     }
 
-    public function setAttributes(array|string $attributes)
+    public function setAttributes(array|string $attributes): void
     {
         if (is_string($attributes)) {
             $this->attributes = $attributes;

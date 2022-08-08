@@ -2,6 +2,7 @@
 
 namespace Ziming\LaravelMyinfoSg\Services;
 
+use Exception;
 use Illuminate\Support\Facades\Log;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
@@ -24,7 +25,7 @@ final class MyinfoSecurityService
     /**
      * Verify JWS.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public static function verifyJWS(string $accessToken): ?array
     {
@@ -48,7 +49,7 @@ final class MyinfoSecurityService
     /**
      * Generate Authorization Header.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public static function generateAuthorizationHeader(string $url, array $params, string $method, string $contentType,
                                                        string $authType, string $appId,
@@ -64,9 +65,9 @@ final class MyinfoSecurityService
     /**
      * Generate SHA256 with RSA Header.
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    private static function generateSHA256withRSAHeader(string $url, array $params, string $method, string $contentType, string $appId, string $passphrase)
+    private static function generateSHA256withRSAHeader(string $url, array $params, string $method, string $contentType, string $appId, string $passphrase): string
     {
         $nonce = random_int(PHP_INT_MIN, PHP_INT_MAX);
 
@@ -118,9 +119,9 @@ final class MyinfoSecurityService
     /**
      * Decrypt JWE
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    public static function decryptJWE(string $personDataToken, string $privateKeyPath, string $passphrase = null)
+    public static function decryptJWE(string $personDataToken, string $privateKeyPath, string $passphrase = null): array|string
     {
         // $passphrase is by default null for backward compatibility purpose as I want to avoid a major version bump
         $passphrase = ($passphrase === null) ? config('laravel-myinfo-sg.client_secret') : $passphrase;

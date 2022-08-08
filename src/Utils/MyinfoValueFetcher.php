@@ -171,6 +171,9 @@ final class MyinfoValueFetcher
         return ($demeritPoints === '' || $demeritPoints === null) ? null : $demeritPoints;
     }
 
+    /**
+     * @return mixed[]
+     */
     public function vehicles(): array
     {
         return Arr::get($this->myinfoData, "vehicles", []);
@@ -191,6 +194,9 @@ final class MyinfoValueFetcher
         return Arr::get($this->vehicles(), "{$index}.effectiveownership.value");
     }
 
+    /**
+     * @return mixed[]
+     */
     public function cpfContributions(): array
     {
         return Arr::get($this->myinfoData, "cpfcontributions.history", []);
@@ -216,6 +222,9 @@ final class MyinfoValueFetcher
         return Arr::get($this->cpfContributions(), "{$index}.employer.value");
     }
 
+    /**
+     * @return mixed[]
+     */
     public function noticeOfAssessmentsDetailed(): array
     {
         return Arr::get($this->myinfoData, "noahistory.noas", []);
@@ -261,6 +270,9 @@ final class MyinfoValueFetcher
         return Arr::get($this->noticeOfAssessmentsDetailed(), "{$index}.category.value");
     }
 
+    /**
+     * @return mixed[]
+     */
     public function noticeOfAssessmentsBasic(): array
     {
         return Arr::get($this->myinfoData, "noahistory-basic.noas", []);
@@ -296,6 +308,9 @@ final class MyinfoValueFetcher
         return Arr::get($this->myinfoData, "hdbtype.{$key}") ?: null;
     }
 
+    /**
+     * @return mixed[]
+     */
     public function hdbOwnerships(): array
     {
         return Arr::get($this->myinfoData, 'hdbownership', []);
@@ -316,6 +331,9 @@ final class MyinfoValueFetcher
         return Arr::get($this->hdbOwnerships(), "{$index}.monthlyloaninstalment.value");
     }
 
+    /**
+     * @return mixed[]
+     */
     public function cpfHousingWithdrawals(): array
     {
         return Arr::get($this->myinfoData, "cpfhousingwithdrawal.withdrawaldetails", []);
@@ -381,6 +399,9 @@ final class MyinfoValueFetcher
         return Arr::get($this->cpfHousingWithdrawals(), "totalamountofcpfallowedforproperty.value") ?: null;
     }
 
+    /**
+     * @return mixed[]
+     */
     public function childrenBirthRecords(): array
     {
         return Arr::get($this->myinfoData, "childrenbirthrecords", []);

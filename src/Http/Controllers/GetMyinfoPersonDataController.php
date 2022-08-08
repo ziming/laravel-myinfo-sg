@@ -2,6 +2,8 @@
 
 namespace Ziming\LaravelMyinfoSg\Http\Controllers;
 
+use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -13,9 +15,9 @@ class GetMyinfoPersonDataController extends Controller
     /**
      * Fetch MyInfo Person Data after authorization code is given back.
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg, ResponseFactory $responseFactory): \Illuminate\Http\JsonResponse
+    public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg, ResponseFactory $responseFactory): JsonResponse
     {
         $state = $request->input('state');
 
@@ -32,7 +34,7 @@ class GetMyinfoPersonDataController extends Controller
         return $responseFactory->json($personData);
     }
 
-    protected function preResponseHook(Request $request, array $personData)
+    protected function preResponseHook(Request $request, array $personData): void
     {
         // Extend this class, override this method.
         // And do your logging and whatever stuffs here if needed.

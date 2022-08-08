@@ -9,7 +9,7 @@ use Spatie\LaravelPackageTools\PackageServiceProvider;
 
 class LaravelMyinfoSgServiceProvider extends PackageServiceProvider
 {
-    public function bootingPackage()
+    public function bootingPackage(): void
     {
         parent::bootingPackage();
         if ($this->app->runningInConsole()) {
