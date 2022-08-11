@@ -2,8 +2,10 @@
 
 namespace Ziming\LaravelMyinfoSg\Enums;
 
-// For my personal use, don't use it
-
+/**
+ * For my personal use, don't use it
+ * @internal
+ */
 enum EducationalLevelEnum: string
 {
     case NO_FORMAL_QUALIFICATION_PRE_PRIMARY_LOWER_PRIMARY = 'NO FORMAL QUALIFICATION / PRE-PRIMARY / LOWER PRIMARY';

@@ -2,8 +2,10 @@
 
 namespace Ziming\LaravelMyinfoSg\Enums;
 
-// For my personal use, don't use it
-
+/**
+ * For my personal use, don't use it
+ * @internal
+ */
 enum MaritalStatusEnum: string
 {
     case SINGLE = 'SINGLE';
