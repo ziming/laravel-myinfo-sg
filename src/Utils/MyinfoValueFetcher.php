@@ -171,9 +171,6 @@ final class MyinfoValueFetcher
         return ($demeritPoints === '' || $demeritPoints === null) ? null : $demeritPoints;
     }
 
-    /**
-     * @return mixed[]
-     */
     public function vehicles(): array
     {
         return Arr::get($this->myinfoData, "vehicles", []);
@@ -194,9 +191,6 @@ final class MyinfoValueFetcher
         return Arr::get($this->vehicles(), "{$index}.effectiveownership.value");
     }
 
-    /**
-     * @return mixed[]
-     */
     public function cpfContributions(): array
     {
         return Arr::get($this->myinfoData, "cpfcontributions.history", []);
@@ -222,9 +216,6 @@ final class MyinfoValueFetcher
         return Arr::get($this->cpfContributions(), "{$index}.employer.value");
     }
 
-    /**
-     * @return mixed[]
-     */
     public function noticeOfAssessmentsDetailed(): array
     {
         return Arr::get($this->myinfoData, "noahistory.noas", []);
@@ -270,9 +261,6 @@ final class MyinfoValueFetcher
         return Arr::get($this->noticeOfAssessmentsDetailed(), "{$index}.category.value");
     }
 
-    /**
-     * @return mixed[]
-     */
     public function noticeOfAssessmentsBasic(): array
     {
         return Arr::get($this->myinfoData, "noahistory-basic.noas", []);
@@ -308,9 +296,6 @@ final class MyinfoValueFetcher
         return Arr::get($this->myinfoData, "hdbtype.{$key}") ?: null;
     }
 
-    /**
-     * @return mixed[]
-     */
     public function hdbOwnerships(): array
     {
         return Arr::get($this->myinfoData, 'hdbownership', []);
@@ -331,77 +316,71 @@ final class MyinfoValueFetcher
         return Arr::get($this->hdbOwnerships(), "{$index}.monthlyloaninstalment.value");
     }
 
-    /**
-     * @return mixed[]
-     */
     public function cpfHousingWithdrawals(): array
     {
         return Arr::get($this->myinfoData, "cpfhousingwithdrawal.withdrawaldetails", []);
     }
 
-    public function cpfHousingWithdrawalsRowAddressType(): ?string
+    public function cpfHousingWithdrawalsRowAddressType(int $index): ?string
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "address.type") ?: null;
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.address.type") ?: null;
     }
 
-    public function cpfHousingWithdrawalsRowAddressBlock(): ?string
+    public function cpfHousingWithdrawalsRowAddressBlock(int $index): ?string
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "address.block.value") ?: null;
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.address.block.value") ?: null;
     }
 
-    public function cpfHousingWithdrawalsRowAddressBuilding(): ?string
+    public function cpfHousingWithdrawalsRowAddressBuilding(int $index): ?string
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "address.building.value") ?: null;
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.address.building.value") ?: null;
     }
 
-    public function cpfHousingWithdrawalsRowAddressFloor(): ?string
+    public function cpfHousingWithdrawalsRowAddressFloor(int $index): ?string
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "address.floor.value") ?: null;
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.address.floor.value") ?: null;
     }
 
-    public function cpfHousingWithdrawalsRowAddressUnit(): ?string
+    public function cpfHousingWithdrawalsRowAddressUnit(int $index): ?string
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "address.unit.value") ?: null;
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.address.unit.value") ?: null;
     }
 
-    public function cpfHousingWithdrawalsRowAddressStreet(): ?string
+    public function cpfHousingWithdrawalsRowAddressStreet(int $index): ?string
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "address.street.value") ?: null;
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.address.street.value") ?: null;
     }
 
-    public function cpfHousingWithdrawalsRowAddressPostal(): ?string
+    public function cpfHousingWithdrawalsRowAddressPostal(int $index): ?string
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "address.postal.value") ?: null;
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.address.postal.value") ?: null;
     }
 
-    public function cpfHousingWithdrawalsRowAddressCountry(): ?string
+    public function cpfHousingWithdrawalsRowAddressCountry(int $index): ?string
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "address.country.desc") ?: null;
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.address.country.desc") ?: null;
     }
 
-    public function cpfHousingWithdrawalsRowAccruedInterestAmt(): ?float
+    public function cpfHousingWithdrawalsRowAccruedInterestAmt(int $index): ?float
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "accruedinterestamt.value") ?: null;
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.accruedinterestamt.value") ?: null;
     }
 
-    public function cpfHousingWithdrawalsRowMonthlyInstalmentAmt(): ?float
+    public function cpfHousingWithdrawalsRowMonthlyInstalmentAmt(int $index): ?float
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "monthlyinstalmentamt.value") ?: null;
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.monthlyinstalmentamt.value") ?: null;
     }
 
-    public function cpfHousingWithdrawalsRowPrincipalWithdrawalAmt(): ?float
+    public function cpfHousingWithdrawalsRowPrincipalWithdrawalAmt(int $index): ?float
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "principalwithdrawalamt.value") ?: null;
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.principalwithdrawalamt.value") ?: null;
     }
 
-    public function cpfHousingWithdrawalsRowTotalAmountOfCpfAllowedForProperty(): ?float
+    public function cpfHousingWithdrawalsRowTotalAmountOfCpfAllowedForProperty(int $index): ?float
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "totalamountofcpfallowedforproperty.value") ?: null;
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.totalamountofcpfallowedforproperty.value") ?: null;
     }
 
-    /**
-     * @return mixed[]
-     */
     public function childrenBirthRecords(): array
     {
         return Arr::get($this->myinfoData, "childrenbirthrecords", []);
