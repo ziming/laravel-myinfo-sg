@@ -172,7 +172,6 @@ class LaravelMyinfoSg
 
                 $personDataJWS = MyInfoSecurityService::decryptJWE(
                     $personData,
-                    config('laravel-myinfo-sg.private_key_path'),
                     $this->clientSecret
                 );
 

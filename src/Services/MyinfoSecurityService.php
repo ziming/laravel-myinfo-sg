@@ -121,7 +121,7 @@ final class MyinfoSecurityService
      *
      * @throws Exception
      */
-    public static function decryptJWE(string $personDataToken, string $privateKeyPath, string $passphrase = null): array|string
+    public static function decryptJWE(string $personDataToken, string $passphrase = null): array|string
     {
         // $passphrase is by default null for backward compatibility purpose as I want to avoid a major version bump
         $passphrase = ($passphrase === null) ? config('laravel-myinfo-sg.client_secret') : $passphrase;
@@ -133,7 +133,7 @@ final class MyinfoSecurityService
             );
         } else {
             $jwk = JWKFactory::createFromKeyFile(
-                $privateKeyPath,
+                config('laravel-myinfo-sg.private_key_path'),
                 $passphrase
             );
         }
