@@ -8,7 +8,7 @@ namespace Ziming\LaravelMyinfoSg\Enums;
  */
 enum ResidentialStatusEnum: string
 {
-    case ALIEN = 'SINGLE';
+    case ALIEN = 'ALIEN';
     case CITIZEN = 'CITIZEN';
     case PR = 'PR';
     case UNKNOWN = 'UNKNOWN';
