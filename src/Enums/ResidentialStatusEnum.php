@@ -13,4 +13,9 @@ enum ResidentialStatusEnum: string
     case PR = 'PR';
     case UNKNOWN = 'UNKNOWN';
     case NOT_APPLICABLE = 'NOT APPLICABLE';
+
+    public static function getOptions(): array
+    {
+        return array_column(self::cases(), 'value', 'value');
+    }
 }
