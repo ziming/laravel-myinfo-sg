@@ -2,12 +2,18 @@
 
 namespace Ziming\LaravelMyinfoSg\Enums;
 
+use ArchTech\Enums\Names;
+use ArchTech\Enums\Options;
+use ArchTech\Enums\Values;
+
 /**
  * For my personal use, don't use it
  * @internal
  */
 enum EducationalLevelEnum: string
 {
+    use Names, Values, Options;
+
     case NO_FORMAL_QUALIFICATION_PRE_PRIMARY_LOWER_PRIMARY = 'NO FORMAL QUALIFICATION / PRE-PRIMARY / LOWER PRIMARY';
     case PRIMARY = 'PRIMARY';
     case POST_SECONDARY = 'POST-SECONDARY';

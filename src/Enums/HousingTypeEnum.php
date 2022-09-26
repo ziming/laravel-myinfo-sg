@@ -2,12 +2,18 @@
 
 namespace Ziming\LaravelMyinfoSg\Enums;
 
+use ArchTech\Enums\Names;
+use ArchTech\Enums\Options;
+use ArchTech\Enums\Values;
+
 /**
  * For my personal use, don't use it
  * @internal
  */
 enum HousingTypeEnum: string
 {
+    use Names, Values, Options;
+
     // HDB
     case ONE_ROOM_FLAT = '1-ROOM FLAT (HDB)';
     case TWO_ROOM_FLAT = '2-ROOM FLAT (HDB)';
@@ -28,5 +34,10 @@ enum HousingTypeEnum: string
     public static function getOptions(): array
     {
         return array_column(self::cases(), 'value', 'value');
+    }
+
+    public static function values(): array
+    {
+        return array_column(self::cases(), 'value');
     }
 }
