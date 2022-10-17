@@ -200,7 +200,4 @@ Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recen
 
 ## Contributing
 
-A donation is always welcomed :)
-
-## I am hiring
-Hiring for my employer now, if you are interested to work with me, feel free to contact me at the email in composer.json to discuss
+A donation is always welcomed, especially if you or your employer makes money with the help of my packages. Which I am aware of a couple.
