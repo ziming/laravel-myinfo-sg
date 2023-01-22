@@ -216,6 +216,22 @@ final class MyinfoValueFetcher
         return Arr::get($this->cpfContributions(), "{$index}.employer.value");
     }
 
+    public function cpfContributionsUniqueEmployers(): array
+    {
+        $cpfContributions = $this->cpfContributions();
+
+        $employers = Arr::map($cpfContributions, function ($cpfRecord) {
+            return Arr::get($cpfRecord, 'employer.value');
+        });
+
+        return array_unique($employers);
+    }
+
+    public function cpfContributionsUniqueEmployersCount(): int
+    {
+        return count($this->cpfContributionsUniqueEmployers());
+    }
+
     public function noticeOfAssessmentsDetailed(): array
     {
         return Arr::get($this->myinfoData, "noahistory.noas", []);
