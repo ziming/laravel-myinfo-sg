@@ -196,6 +196,11 @@ final class MyinfoValueFetcher
         return Arr::get($this->myinfoData, "cpfcontributions.history", []);
     }
 
+    public function cpfContributionsRow(int $index): array
+    {
+        return Arr::get($this->myinfoData, "cpfcontributions.history.{$index}");
+    }
+
     public function cpfContributionsRowMonth(int $index): string
     {
         return Arr::get($this->cpfContributions(), "{$index}.month.value");
@@ -227,9 +232,57 @@ final class MyinfoValueFetcher
         return array_unique($employers);
     }
 
-    public function cpfContributionsUniqueEmployersCount(): int
+    public function cpfContributionsHighestAmountRow(): array
     {
-        return count($this->cpfContributionsUniqueEmployers());
+        $highestAmount = 0;
+        $highestAmountRow = [];
+
+        $cpfContributions = $this->cpfContributions();
+        $cpfContributionsCount = count($this->cpfContributions());
+
+        for ($i = 0; $i < $cpfContributionsCount; $i++) {
+            if ($cpfContributions[$i]['amount'] > $highestAmount) {
+                $highestAmountRow = $cpfContributions[$i];
+            }
+        }
+
+        return $highestAmountRow;
+    }
+
+    /*
+     * Return the employer(s) that appear the most times in employer cpf contributions
+     */
+    public function cpfContributionsModeEmployers(): array
+    {
+        $cpfContributions = $this->cpfContributions();
+        $employersFrequency = [];
+        $highestFrequencyCount = 0;
+
+        foreach ($cpfContributions as $cpfContribution) {
+            $employerName = $cpfContribution['employer']['value'];
+
+            if (array_key_exists($employerName, $employersFrequency)) {
+                $employersFrequency[$employerName]++;
+
+                if ($employersFrequency[$employerName] > $highestFrequencyCount) {
+                    $highestFrequencyCount = $employersFrequency[$employerName];
+                }
+
+                continue;
+            }
+
+            $employersFrequency[$employerName] = 0;
+        }
+
+        $modeEmployers = [];
+
+        foreach ($employersFrequency as $employerName => $employerFrequencyCount) {
+            if ($employerFrequencyCount === $highestFrequencyCount) {
+                $modeEmployers[] = $employerName;
+            }
+        }
+
+        return $modeEmployers;
     }
 
     public function noticeOfAssessmentsDetailed(): array
