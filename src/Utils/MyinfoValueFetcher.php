@@ -76,7 +76,7 @@ final class MyinfoValueFetcher
         return Arr::get($this->myinfoData, "mobileno.nbr.{$key}") ?: null;
     }
 
-    protected function fullMobilePhone(): ?string
+    protected function mobilePhoneFull(): ?string
     {
         $prefix = Arr::get($this->myinfoData, 'mobileno.prefix.value');
         $areaCode = Arr::get($this->myinfoData, 'mobileno.areacode.value');
