@@ -299,42 +299,42 @@ final class MyinfoValueFetcher
         return Arr::get($this->myinfoData, "noahistory.noas", []);
     }
 
-    public function noticeOfAssessmentsDetailedRowYear(int $index): int
+    public function noticeOfAssessmentsDetailedRowYear(int $index): ?int
     {
         return Arr::get($this->noticeOfAssessmentsDetailed(), "{$index}.yearofassessment.value");
     }
 
-    public function noticeOfAssessmentsDetailedRowAmount(int $index): float
+    public function noticeOfAssessmentsDetailedRowAmount(int $index): ?float
     {
         return Arr::get($this->noticeOfAssessmentsDetailed(), "{$index}.amount.value");
     }
 
-    public function noticeOfAssessmentsDetailedRowEmployment(int $index): float
+    public function noticeOfAssessmentsDetailedRowEmployment(int $index): ?float
     {
         return Arr::get($this->noticeOfAssessmentsDetailed(), "{$index}.employment.value");
     }
 
-    public function noticeOfAssessmentsDetailedRowTrade(int $index): float
+    public function noticeOfAssessmentsDetailedRowTrade(int $index): ?float
     {
         return Arr::get($this->noticeOfAssessmentsDetailed(), "{$index}.trade.value");
     }
 
-    public function noticeOfAssessmentsDetailedRowRent(int $index): float
+    public function noticeOfAssessmentsDetailedRowRent(int $index): ?float
     {
         return Arr::get($this->noticeOfAssessmentsDetailed(), "{$index}.rent.value");
     }
 
-    public function noticeOfAssessmentsDetailedRowInterest(int $index): float
+    public function noticeOfAssessmentsDetailedRowInterest(int $index): ?float
     {
         return Arr::get($this->noticeOfAssessmentsDetailed(), "{$index}.interest.value");
     }
 
-    public function noticeOfAssessmentsDetailedRowTaxClearance(int $index): string
+    public function noticeOfAssessmentsDetailedRowTaxClearance(int $index): ?string
     {
         return Arr::get($this->noticeOfAssessmentsDetailed(), "{$index}.taxclearance.value");
     }
 
-    public function noticeOfAssessmentsDetailedRowCategory(int $index): string
+    public function noticeOfAssessmentsDetailedRowCategory(int $index): ?string
     {
         return Arr::get($this->noticeOfAssessmentsDetailed(), "{$index}.category.value");
     }
