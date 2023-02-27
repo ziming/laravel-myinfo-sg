@@ -4,7 +4,7 @@ namespace Ziming\LaravelMyinfoSg\Http\Controllers;
 
 use Exception;
 use Illuminate\Http\RedirectResponse;
-use Carbon\Carbon;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Routing\Redirector;

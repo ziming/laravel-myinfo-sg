@@ -23,11 +23,7 @@ final class MyinfoAvailabilityChecker
         $cpfbUnavailableTimeStart = Carbon::createFromTime(5, 0, 0, 'Asia/Singapore');
         $cpfbUnavailableTimeEnd = Carbon::createFromTime(5, 30, 0, 'Asia/Singapore');
 
-        if ($now->between($cpfbUnavailableTimeStart, $cpfbUnavailableTimeEnd)) {
-            return true;
-        }
-
-        return false;
+        return $now->between($cpfbUnavailableTimeStart, $cpfbUnavailableTimeEnd);
     }
 
     public static function irasUnavailable(): bool
@@ -44,10 +40,6 @@ final class MyinfoAvailabilityChecker
         $irasUnavailableTimeStartSun = Carbon::createFromTime(2, 0, 0, 'Asia/Singapore');;
         $irasUnavailableTimeEndSun = Carbon::createFromTime(8, 30, 0, 'Asia/Singapore');
 
-        if ($now->isSunday() && $now->between($irasUnavailableTimeStartSun, $irasUnavailableTimeEndSun)) {
-            return true;
-        }
-
-        return false;
+        return $now->isSunday() && $now->between($irasUnavailableTimeStartSun, $irasUnavailableTimeEndSun);
     }
 }

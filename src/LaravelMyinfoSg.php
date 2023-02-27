@@ -4,7 +4,7 @@ namespace Ziming\LaravelMyinfoSg;
 
 use Exception;
 use Psr\Http\Message\ResponseInterface;
-use Carbon\Carbon;
+use Illuminate\Support\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
 use Ziming\LaravelMyinfoSg\Exceptions\AccessTokenNotFoundException;
