@@ -3,6 +3,7 @@
 namespace Ziming\LaravelMyinfoSg;
 
 use Exception;
+use GuzzleHttp\Exception\GuzzleException;
 use Psr\Http\Message\ResponseInterface;
 use Illuminate\Support\Carbon;
 use GuzzleHttp\Client;
@@ -57,8 +58,8 @@ class LaravelMyinfoSg
     /**
      * Get MyInfo Person Data in an array with a 'data' key.
      *
-     * @throws Exception
-     * @return array<string, mixed>|array<string, mixed[]>
+     * @return array<string, mixed>|array<string, array>
+     * @throws GuzzleException|Exception
      */
     public function getMyinfoPersonData(string $code): array
     {
@@ -78,7 +79,7 @@ class LaravelMyinfoSg
     /**
      * Create Token Request.
      *
-     * @throws Exception
+     * @throws Exception|GuzzleException
      */
     private function createTokenRequest(string $code): ResponseInterface
     {
@@ -138,7 +139,7 @@ class LaravelMyinfoSg
      * Call Person API.
      *
      * @throws Exception
-     * @return array<string, mixed>|array<string, mixed[]>
+     * @return array<string, mixed>|array<string, array>
      */
     private function callPersonAPI(string $accessToken): array
     {
@@ -197,7 +198,7 @@ class LaravelMyinfoSg
     /**
      * Create Person Request.
      *
-     * @throws Exception
+     * @throws Exception|GuzzleException
      */
     private function createPersonRequest(string $sub, string $validAccessToken): ResponseInterface
     {
