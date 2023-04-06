@@ -31,6 +31,8 @@ enum HousingTypeEnum: string
     case EXECUTIVE_CONDOMINIUM = 'EXECUTIVE CONDOMINIUM';
     case APARTMENT = 'APARTMENT';
 
+    case NO_HOUSE = '';
+
     public static function getOptions(): array
     {
         return array_column(self::cases(), 'value', 'value');
