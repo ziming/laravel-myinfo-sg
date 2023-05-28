@@ -23,7 +23,17 @@ final class MyinfoAvailabilityChecker
         $cpfbUnavailableTimeStart = Carbon::createFromTime(5, 0, 0, 'Asia/Singapore');
         $cpfbUnavailableTimeEnd = Carbon::createFromTime(5, 30, 0, 'Asia/Singapore');
 
-        return $now->between($cpfbUnavailableTimeStart, $cpfbUnavailableTimeEnd);
+        if ($now->between($cpfbUnavailableTimeStart, $cpfbUnavailableTimeEnd)) {
+            return true;
+        };
+
+        $cpfbUnavailableTimeStart = Carbon::createFromTime(0, 0, 0, 'Asia/Singapore');
+        $cpfbUnavailableTimeEnd = Carbon::createFromTime(8, 0, 0, 'Asia/Singapore');
+
+        return in_array($now->weekNumberInMonth, [1, 4]) &&
+            $now->isSunday() &&
+            $now->between($cpfbUnavailableTimeStart, $cpfbUnavailableTimeEnd);
+
     }
 
     public static function irasUnavailable(): bool
@@ -42,4 +52,17 @@ final class MyinfoAvailabilityChecker
 
         return $now->isSunday() && $now->between($irasUnavailableTimeStartSun, $irasUnavailableTimeEndSun);
     }
+
+    public static function momUnavailable(): bool
+    {
+        $now = Carbon::now('Asia/Singapore');
+
+        $momsUnavailableTimeStartWed = Carbon::createFromTime(0, 0, 0, 'Asia/Singapore');;
+        $momUnavailableTimeEndWed = Carbon::createFromTime(6, 0, 0, 'Asia/Singapore');
+
+        return $now->weekNumberInMonth === 4 &&
+            $now->isSunday() &&
+            $now->between($momsUnavailableTimeStart, $momUnavailableTimeEnd);
+    }
+
 }
