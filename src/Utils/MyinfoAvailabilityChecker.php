@@ -57,8 +57,8 @@ final class MyinfoAvailabilityChecker
     {
         $now = Carbon::now('Asia/Singapore');
 
-        $momsUnavailableTimeStartWed = Carbon::createFromTime(0, 0, 0, 'Asia/Singapore');;
-        $momUnavailableTimeEndWed = Carbon::createFromTime(6, 0, 0, 'Asia/Singapore');
+        $momsUnavailableTimeStart = Carbon::createFromTime(0, 0, 0, 'Asia/Singapore');;
+        $momUnavailableTimeEnd = Carbon::createFromTime(6, 0, 0, 'Asia/Singapore');
 
         return $now->weekNumberInMonth === 4 &&
             $now->isSunday() &&
