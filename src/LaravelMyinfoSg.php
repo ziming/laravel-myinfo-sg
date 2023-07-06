@@ -21,14 +21,14 @@ class LaravelMyinfoSg
         private ?string $clientId = null,
         private ?string $clientSecret = null,
         private ?string $scope = null,
-        private ?string $purpose = null,
+        private ?string $purposeId = null,
         private ?string $redirectUri = null,
     )
     {
         $this->clientId = $clientId ?? config('laravel-myinfo-sg.client_id');
         $this->clientSecret = $clientSecret ?? config('laravel-myinfo-sg.client_secret');
         $this->scope = $scope ?? config('laravel-myinfo-sg.scope');
-        $this->purpose = $purpose ?? config('laravel-myinfo-sg.purpose');
+        $this->purposeId = $purposeId ?? config('laravel-myinfo-sg.purpose_id');
         $this->redirectUri = $redirectUri ?? config('laravel-myinfo-sg.redirect_url');
     }
 
@@ -40,7 +40,7 @@ class LaravelMyinfoSg
         $query = http_build_query([
             'client_id' => $this->clientId,
             'scope' => $this->scope,
-            'purpose' => $this->purpose,
+            'purpose_id' => $this->purposeId,
             'state' => $state,
             'redirect_uri' => $this->redirectUri,
         ]);
@@ -254,12 +254,12 @@ class LaravelMyinfoSg
         return $response;
     }
 
-    public function setAttributes(array|string $attributes): void
+    public function setScope(array|string $scope): void
     {
-        if (is_string($attributes)) {
-            $this->attributes = $attributes;
-        } elseif (is_array($attributes)) {
-            $this->attributes = join(',', $attributes);
+        if (is_string($scope)) {
+            $this->scope = $scope;
+        } else {
+            $this->scope = join(',', $scope);
         }
     }
 }
