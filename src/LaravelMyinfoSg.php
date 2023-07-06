@@ -35,13 +35,15 @@ class LaravelMyinfoSg
     /**
      * Generate MyInfo Authorise API URI to redirect to.
      */
-    public function generateAuthoriseApiUrl(string $state): string
+    public function generateAuthoriseApiUrl(string $codeChallenge): string
     {
         $query = http_build_query([
             'client_id' => $this->clientId,
             'scope' => $this->scope,
             'purpose_id' => $this->purposeId,
-            'state' => $state,
+            'code_challenge' => $codeChallenge,
+            'code_challenge_method' => 'S256',
+            'response_type' => 'code',
             'redirect_uri' => $this->redirectUri,
         ]);
 
