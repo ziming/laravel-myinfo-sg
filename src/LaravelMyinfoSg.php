@@ -20,14 +20,14 @@ class LaravelMyinfoSg
     public function __construct(
         private ?string $clientId = null,
         private ?string $clientSecret = null,
-        private ?string $attributes = null,
+        private ?string $scope = null,
         private ?string $purpose = null,
         private ?string $redirectUri = null,
     )
     {
         $this->clientId = $clientId ?? config('laravel-myinfo-sg.client_id');
         $this->clientSecret = $clientSecret ?? config('laravel-myinfo-sg.client_secret');
-        $this->attributes = $attributes ?? config('laravel-myinfo-sg.attributes');
+        $this->scope = $scope ?? config('laravel-myinfo-sg.scope');
         $this->purpose = $purpose ?? config('laravel-myinfo-sg.purpose');
         $this->redirectUri = $redirectUri ?? config('laravel-myinfo-sg.redirect_url');
     }
@@ -39,7 +39,7 @@ class LaravelMyinfoSg
     {
         $query = http_build_query([
             'client_id' => $this->clientId,
-            'attributes' => $this->attributes,
+            'scope' => $this->scope,
             'purpose' => $this->purpose,
             'state' => $state,
             'redirect_uri' => $this->redirectUri,
