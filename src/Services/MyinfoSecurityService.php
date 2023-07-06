@@ -4,6 +4,7 @@ namespace Ziming\LaravelMyinfoSg\Services;
 
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
 use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
@@ -166,5 +167,39 @@ final class MyinfoSecurityService
         $payload = str_replace('"', '', $payload);
 
         return $payload;
+    }
+
+    public function generateSessionKeyPair()
+    {
+        // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
+    }
+
+    public function generateClientAssertion(string $url, string $clientId, string $privateSigningKey, string $jktThumbprint, string $kid)
+    {
+        // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
+
+        // let now = Math.floor(Date.now() / 1000); // get the time of creation in unix
+        $now = (int) round(microtime(true) * 1000);
+
+        $payload = [
+            'sub' => $clientId,
+            'jti' => Str::random(40), // generate unique random string on every client_assertion for jti
+            'aud' => $url,
+            'iss' => $clientId,
+            'iat' => $now,
+            'exp' => $now + 300, // expiry of client_assertion set to 5 mins max
+            'cnf' => [
+                'jkt' => $jktThumbprint // jkt thumbprint should match DPoP JWK used in the same request
+            ]
+
+            // to continue
+        ];
+
+
+    }
+
+    public function generateDpop()
+    {
+        // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
     }
 }
