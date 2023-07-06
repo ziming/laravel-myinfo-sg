@@ -63,9 +63,9 @@ class LaravelMyinfoSg
      * @return array<string, mixed>|array<string, array>
      * @throws GuzzleException|Exception
      */
-    public function getMyinfoPersonData(string $code): array
+    public function getMyinfoPersonData(string $code, string $codeVerifier): array
     {
-        $tokenRequestResponse = $this->createTokenRequest($code);
+        $tokenRequestResponse = $this->createTokenRequest($code, $codeVerifier);
 
         $tokenRequestResponseBody = $tokenRequestResponse->getBody();
 
@@ -83,7 +83,7 @@ class LaravelMyinfoSg
      *
      * @throws Exception|GuzzleException
      */
-    private function createTokenRequest(string $code): ResponseInterface
+    private function createTokenRequest(string $code, string $codeVerifier): ResponseInterface
     {
         $guzzleClient = new Client;
 
@@ -94,14 +94,19 @@ class LaravelMyinfoSg
             'grant_type' => 'authorization_code',
             'redirect_uri' => $this->redirectUri,
             'client_id' => $this->clientId,
-            'client_secret' => $this->clientSecret,
+            'client_assertion' => 'ToDo',
+            'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+            // 'client_secret' => $this->clientSecret, To remove later
             'code' => $code,
+            'code_verifier' => $codeVerifier,
         ];
 
         $headers = [
             'Cache-Control' => 'no-cache',
             'Content-Type' => $contentType,
+            'Accept' => 'application/json',
             'Accept-Encoding' => 'gzip',
+            'DPoP' => 'ToDo',
         ];
 
         if (config('laravel-myinfo-sg.debug_mode')) {

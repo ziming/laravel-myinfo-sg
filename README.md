@@ -29,7 +29,7 @@ MYINFO_APP_CLIENT_ID=STG2-MYINFO-SELF-TEST
 MYINFO_APP_CLIENT_SECRET=44d953c796cccebcec9bdc826852857ab412fbe2
 MYINFO_APP_REDIRECT_URL=http://localhost:3001/callback
 MYINFO_APP_PURPOSE="demonstrating MyInfo APIs"
-MYINFO_APP_ATTRIBUTES=uinfin,name,sex,race,nationality,dob,email,mobileno,regadd,housingtype,hdbtype,marital,noa-basic,ownerprivate,cpfcontributions,cpfbalances
+MYINFO_APP_ATTRIBUTES=uinfin name sex race nationality dob email mobileno regadd housingtype hdbtype marital noa-basic ownerprivate cpfcontributions cpfbalances
 
 MYINFO_APP_SIGNATURE_CERT_PRIVATE_KEY=file:///Users/your-username/your-laravel-app/storage/myinfo-ssl/stg-demoapp-client-privatekey-2018.pem
 MYINFO_SIGNATURE_CERT_PUBLIC_CERT=file:///Users/your-username/your-laravel-app/storage/myinfo-ssl/staging_myinfo_public_cert.cer
@@ -38,15 +38,15 @@ MYINFO_DEBUG_MODE=false
 
 # SANDBOX ENVIRONMENT (no PKI digital signature)
 MYINFO_AUTH_LEVEL=L0
-MYINFO_API_AUTHORISE=https://sandbox.api.myinfo.gov.sg/com/v3/authorise
-MYINFO_API_TOKEN=https://sandbox.api.myinfo.gov.sg/com/v3/token
-MYINFO_API_PERSON=https://sandbox.api.myinfo.gov.sg/com/v3/person
+MYINFO_API_AUTHORISE=https://sandbox.api.myinfo.gov.sg/com/v4/authorise
+MYINFO_API_TOKEN=https://sandbox.api.myinfo.gov.sg/com/v4/token
+MYINFO_API_PERSON=https://sandbox.api.myinfo.gov.sg/com/v4/person
 
 # TEST ENVIRONMENT (with PKI digital signature)
 #MYINFO_AUTH_LEVEL=L2
-#MYINFO_API_AUTHORISE=https://test.api.myinfo.gov.sg/com/v3/authorise
-#MYINFO_API_TOKEN=https://test.api.myinfo.gov.sg/com/v3/token
-#MYINFO_API_PERSON=https://test.api.myinfo.gov.sg/com/v3/person
+#MYINFO_API_AUTHORISE=https://test.api.myinfo.gov.sg/com/v4/authorise
+#MYINFO_API_TOKEN=https://test.api.myinfo.gov.sg/com/v4/token
+#MYINFO_API_PERSON=https://test.api.myinfo.gov.sg/com/v4/person
 
 # Controller URI Paths. IMPORTANT
 MYINFO_CALL_AUTHORISE_API_URL=/redirect-to-singpass
