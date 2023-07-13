@@ -5,6 +5,7 @@ namespace Ziming\LaravelMyinfoSg\Services;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Jose\Bundle\JoseFramework\DependencyInjection\Source\KeyManagement\JWKSource\JWK;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
 use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
@@ -169,9 +170,10 @@ final class MyinfoSecurityService
         return $payload;
     }
 
-    public function generateSessionKeyPair()
+    public function generateSessionKeyPair(): \Jose\Component\Core\JWK
     {
         // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
+        return JWKFactory::createECKey('P-256');
     }
 
     public function generateClientAssertion(string $url, string $clientId, string $privateSigningKey, string $jktThumbprint, string $kid)
