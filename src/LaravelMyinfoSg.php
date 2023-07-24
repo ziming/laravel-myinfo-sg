@@ -215,7 +215,7 @@ class LaravelMyinfoSg
 
         $params = [
             'client_id' => $this->clientId,
-            'attributes' => $this->attributes,
+            'scope' => $this->scope,
         ];
 
         $headers = [

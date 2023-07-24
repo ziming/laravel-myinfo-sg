@@ -42,7 +42,7 @@ class MyinfoSandboxApi
     public static function fetchSandboxProfile(string $uinfin): array
     {
         // In future, might want throw exception or return empty array if http call fail.
-        return Http::get('https://sandbox.api.myinfo.gov.sg/com/v3/person-sample/' . $uinfin)
+        return Http::get('https://sandbox.api.myinfo.gov.sg/com/v4/person-sample/' . $uinfin)
             ->json();
     }
 
