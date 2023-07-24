@@ -11,15 +11,16 @@ return [
     'scope_array' => explode(',', env('MYINFO_APP_ATTRIBUTES', 'uinfin name sex race nationality dob email mobileno regadd housingtype hdbtype marital noa-basic ownerprivate cpfcontributions cpfbalances')),
     'purpose'       => env('MYINFO_APP_PURPOSE', 'demonstrating MyInfo APIs'),
 
-    'public_cert_path' => env('MYINFO_SIGNATURE_CERT_PUBLIC_CERT'),
-    'private_key_path' => env('MYINFO_APP_SIGNATURE_CERT_PRIVATE_KEY'),
-    'public_cert_content' => env('MYINFO_SIGNATURE_CERT_PUBLIC_CERT_CONTENT'),
-    'private_key_content' => env('MYINFO_SIGNATURE_CERT_PRIVATE_KEY_CONTENT'),
+
+    'client_assertion_private_signing_key_path' => env('MYINFO_CLIENT_ASSERTION_PRIVATE_KEY_PATH'),
+
+    // folder to private encryption keys, allow multiple keys to match multiple encryption keys in JWKS
+    'private_encryption_keys_folder_path' => env('MYINFO_PRIVATE_ENCRYPTION_KEYS_FOLDER_PATH'),
 
     'auth_level'        => env('MYINFO_AUTH_LEVEL', 'L2'),
-    'api_authorise_url' => env('MYINFO_API_AUTHORISE', 'https://test.api.myinfo.gov.sg/com/v3/authorise'),
-    'api_token_url'     => env('MYINFO_API_TOKEN', 'https://test.api.myinfo.gov.sg/com/v3/token'),
-    'api_person_url'    => env('MYINFO_API_PERSON', 'https://test.api.myinfo.gov.sg/com/v3/person'),
+    'api_authorise_url' => env('MYINFO_API_AUTHORISE', 'https://test.api.myinfo.gov.sg/com/v4/authorise'),
+    'api_token_url'     => env('MYINFO_API_TOKEN', 'https://test.api.myinfo.gov.sg/com/v4/token'),
+    'api_person_url'    => env('MYINFO_API_PERSON', 'https://test.api.myinfo.gov.sg/com/v4/person'),
 
     // If this is false, call_authorise_api_url and get_myinfo_person_data_url routes would not be registered
     'enable_default_myinfo_routes' => true,
