@@ -193,9 +193,11 @@ final class MyinfoSecurityService
             'cnf' => [
                 'jkt' => $jktThumbprint // jkt thumbprint should match DPoP JWK used in the same request
             ]
-
-            // to continue
         ];
+
+        // to continue
+        // $jwsKey = jose.JWK.asKey($privateSigningKey, 'pem');
+        $jwsKey = JWKFactory::createFromKey($privateSigningKey);
 
 
     }
