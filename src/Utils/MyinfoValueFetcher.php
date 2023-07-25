@@ -379,7 +379,7 @@ final class MyinfoValueFetcher
         return Arr::get($this->myinfoData, 'hdbownership', []);
     }
 
-    public function hdbOwnershipsRowNoOfOwners(int $index): int
+    public function hdbOwnershipsRowNoOfOwners(int $index): ?int
     {
         return Arr::get($this->hdbOwnerships(), "{$index}.noofowners.value");
     }
