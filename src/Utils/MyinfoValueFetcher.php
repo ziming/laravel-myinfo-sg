@@ -185,17 +185,17 @@ final class MyinfoValueFetcher
         return Arr::get($this->myinfoData, "vehicles", []);
     }
 
-    public function vehiclesRowMake(int $index): string
+    public function vehiclesRowMake(int $index): ?string
     {
         return Arr::get($this->vehicles(), "{$index}.make.value");
     }
 
-    public function vehiclesRowModel(int $index): string
+    public function vehiclesRowModel(int $index): ?string
     {
         return Arr::get($this->vehicles(), "{$index}.model.value");
     }
 
-    public function vehiclesRowEffectiveOwnership(int $index): string
+    public function vehiclesRowEffectiveOwnership(int $index): ?string
     {
         return Arr::get($this->vehicles(), "{$index}.effectiveownership.value");
     }
