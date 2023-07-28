@@ -5,8 +5,8 @@ namespace Ziming\LaravelMyinfoSg\Services;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Jose\Bundle\JoseFramework\DependencyInjection\Source\KeyManagement\JWKSource\JWK;
 use Jose\Component\Core\AlgorithmManager;
+use Jose\Component\Core\JWK;
 use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
 use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
 use Jose\Component\Encryption\Compression\CompressionMethodManager;
@@ -170,13 +170,13 @@ final class MyinfoSecurityService
         return $payload;
     }
 
-    public function generateSessionKeyPair(): \Jose\Component\Core\JWK
+    public function generateSessionKeyPair(): JWK
     {
         // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
         return JWKFactory::createECKey('P-256');
     }
 
-    public function generateClientAssertion(string $url, string $clientId, string $privateSigningKey, string $jktThumbprint, string $kid)
+    public function generateClientAssertion(string $url, string $clientId, string $privateSigningKey, string $jktThumbprint, string $kid): void
     {
         // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
 
@@ -202,8 +202,25 @@ final class MyinfoSecurityService
 
     }
 
-    public function generateDpop()
+    public function generateDpop(string $url, string $ath, string $method, JWK $sessionEphemeralKeyPair): string
     {
         // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
+        $now = (int) round(microtime(true) * 1000);
+
+        $payload = [
+            'htu' => $url,
+            'htm' => $method,
+            'jti' => Str::random(40), // on every client_assertion for jti
+            'iat' => $now,
+            'exp' => $now + 120,
+        ];
+
+        if ($ath) {
+            $payload['ath'] = $ath;
+        }
+
+        // TODO: Finish the session key pair 1st
+
+
     }
 }
