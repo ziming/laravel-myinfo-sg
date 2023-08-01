@@ -14,7 +14,9 @@ use Jose\Component\Encryption\Compression\Deflate;
 use Jose\Component\Encryption\JWEDecrypter;
 use Jose\Component\Encryption\Serializer\JWESerializerManager;
 use Jose\Component\KeyManagement\JWKFactory;
+use Jose\Component\Signature\Algorithm\ES256;
 use Jose\Component\Signature\Algorithm\RS256;
+use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\JWSVerifier;
 use Jose\Component\Signature\Serializer\CompactSerializer;
 use Jose\Component\Signature\Serializer\JWSSerializerManager;
@@ -173,6 +175,7 @@ final class MyinfoSecurityService
     public function generateSessionKeyPair(): JWK
     {
         // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
+
         return JWKFactory::createECKey('P-256');
     }
 
@@ -180,7 +183,6 @@ final class MyinfoSecurityService
     {
         // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
 
-        // let now = Math.floor(Date.now() / 1000); // get the time of creation in unix
         $now = (int) round(microtime(true) * 1000);
 
         $payload = [
@@ -212,15 +214,35 @@ final class MyinfoSecurityService
             'htm' => $method,
             'jti' => Str::random(40), // on every client_assertion for jti
             'iat' => $now,
-            'exp' => $now + 120,
+            'exp' => $now + 120, // 2 mins max
         ];
 
+        // append ath if passed in required for /person call
         if ($ath) {
             $payload['ath'] = $ath;
         }
 
-        // TODO: Finish the session key pair 1st
+        // If the key is a private key (RSA, EC, OKP), it can be converted into public
+        $publicKey = $sessionEphemeralKeyPair->toPublic();
 
+        $algorithmManager = new AlgorithmManager([new ES256]);
 
+        // $jws = $serializerManager->unserialize($accessToken);
+        $jwsBuilder = new JWSBuilder($algorithmManager);
+        $jws = $jwsBuilder
+            ->create()
+            ->withPayload(json_encode($payload))
+            ->addSignature($publicKey, ['alg' => 'ES256'])
+            ->build();
+
+        $serializer = new CompactSerializer();
+
+        $jwtToken = $serializer->serialize($jws, 0);
+
+        if (config('laravel-myinfo-sg.debug_mode')) {
+            Log::info('Encoded DPoP: ' . $jwtToken);
+        }
+
+        return $jwtToken;
     }
 }
