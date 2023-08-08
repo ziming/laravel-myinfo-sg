@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Core\JWK;
+use Jose\Component\Core\JWT;
 use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
 use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
 use Jose\Component\Encryption\Compression\CompressionMethodManager;
@@ -48,6 +49,11 @@ final class MyinfoSecurityService
         $verified = $jwsVerifier->verifyWithKey($jws, $jwk, 0);
 
         return $verified ? json_decode($jws->getPayload(), true) : null;
+    }
+
+    public static function newVerifyJWS($compactJWS, $jwksUrl)
+    {
+
     }
 
     /**
@@ -142,7 +148,6 @@ final class MyinfoSecurityService
             );
         }
 
-
         $serializerManager = new JWESerializerManager([
             new \Jose\Component\Encryption\Serializer\CompactSerializer,
         ]);
@@ -172,14 +177,15 @@ final class MyinfoSecurityService
         return $payload;
     }
 
+    /*
+     * D
+     */
     public function generateSessionKeyPair(): JWK
     {
-        // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
-
         return JWKFactory::createECKey('P-256');
     }
 
-    public function generateClientAssertion(string $url, string $clientId, string $privateSigningKey, string $jktThumbprint, string $kid): void
+    public function generateClientAssertion(string $url, string $clientId, string $privateSigningKey, string $jktThumbprint, string $kid): string
     {
         // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
 
@@ -187,13 +193,13 @@ final class MyinfoSecurityService
 
         $payload = [
             'sub' => $clientId,
-            'jti' => Str::random(40), // generate unique random string on every client_assertion for jti
+            'jti' => Str::random(40),
             'aud' => $url,
             'iss' => $clientId,
             'iat' => $now,
-            'exp' => $now + 300, // expiry of client_assertion set to 5 mins max
+            'exp' => $now + 300,
             'cnf' => [
-                'jkt' => $jktThumbprint // jkt thumbprint should match DPoP JWK used in the same request
+                'jkt' => $jktThumbprint
             ]
         ];
 
@@ -201,12 +207,34 @@ final class MyinfoSecurityService
         // $jwsKey = jose.JWK.asKey($privateSigningKey, 'pem');
         $jwsKey = JWKFactory::createFromKey($privateSigningKey);
 
+        $algorithmManager = new AlgorithmManager([new ES256]);
+        $jwsBuilder = new JWSBuilder($algorithmManager);
+        $serializer = new CompactSerializer();
 
+        $signature = [
+            'alg' => 'ES256',
+            'typ' => 'JWT',
+        ];
+        if ($kid) {
+            $signature['kid'] = $kid;
+        }
+
+        $jws = $jwsBuilder
+            ->create()
+            ->withPayload(json_encode($payload))
+            ->addSignature($jwsKey, $signature)
+            ->build();
+
+        $jwtToken = $serializer->serialize($jws, 0);
+
+        return $jwtToken;
     }
 
+    /*
+     * Done
+     */
     public function generateDpop(string $url, string $ath, string $method, JWK $sessionEphemeralKeyPair): string
     {
-        // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
         $now = (int) round(microtime(true) * 1000);
 
         $payload = [
@@ -223,16 +251,25 @@ final class MyinfoSecurityService
         }
 
         // If the key is a private key (RSA, EC, OKP), it can be converted into public
-        $publicKey = $sessionEphemeralKeyPair->toPublic();
+        $privateKey = $sessionEphemeralKeyPair;
+        $publicKey = $privateKey->toPublic();
+        $jwk = $publicKey->jsonSerialize();
+        $jwk['use'] = 'sig';
+        $jwk['alg'] = 'ES256';
+        // $jwk['kid'] = 'kid-is-optional';
 
         $algorithmManager = new AlgorithmManager([new ES256]);
 
-        // $jws = $serializerManager->unserialize($accessToken);
         $jwsBuilder = new JWSBuilder($algorithmManager);
+
         $jws = $jwsBuilder
             ->create()
             ->withPayload(json_encode($payload))
-            ->addSignature($publicKey, ['alg' => 'ES256'])
+            ->addSignature($privateKey, [
+                'alg' => 'ES256',
+                'typ' => 'dpop+jwt',
+                'jwk' => $jwk,
+            ])
             ->build();
 
         $serializer = new CompactSerializer();
