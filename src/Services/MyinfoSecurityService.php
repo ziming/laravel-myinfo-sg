@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Core\JWK;
-use Jose\Component\Core\JWT;
 use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
 use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
 use Jose\Component\Encryption\Compression\CompressionMethodManager;

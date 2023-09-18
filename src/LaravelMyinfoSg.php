@@ -282,7 +282,7 @@ class LaravelMyinfoSg
         if (is_string($scope)) {
             $this->scope = $scope;
         } else {
-            $this->scope = join(',', $scope);
+            $this->scope = join(' ', $scope);
         }
     }
 }
