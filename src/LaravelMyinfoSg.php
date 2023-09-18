@@ -63,9 +63,19 @@ class LaravelMyinfoSg
      * @return array<string, mixed>|array<string, array>
      * @throws GuzzleException|Exception
      */
-    public function getMyinfoPersonData(string $code, string $codeVerifier): array
+    public function getMyinfoPersonData(
+        string $code,
+        string $codeVerifier,
+        string $privateSigningKey,
+        array $privateEncryptionKeys
+    ): array
     {
-        $tokenRequestResponse = $this->createTokenRequest($code, $codeVerifier);
+        $tokenRequestResponse = $this->createTokenRequest(
+            $code,
+            $codeVerifier,
+            $privateSigningKey,
+            $privateEncryptionKeys
+        );
 
         $tokenRequestResponseBody = $tokenRequestResponse->getBody();
 
@@ -83,7 +93,7 @@ class LaravelMyinfoSg
      *
      * @throws Exception|GuzzleException
      */
-    private function createTokenRequest(string $code, string $codeVerifier): ResponseInterface
+    private function createTokenRequest(string $code, string $codeVerifier, string $privateSigningKey, array $privateEncryptionKeys): ResponseInterface
     {
         $guzzleClient = new Client;
 
@@ -106,7 +116,12 @@ class LaravelMyinfoSg
             'Content-Type' => $contentType,
             'Accept' => 'application/json',
             'Accept-Encoding' => 'gzip',
-            'DPoP' => 'ToDo',
+            'DPoP' => MyinfoSecurityService::generateDpop(
+                config('laravel-myinfo-sg.api_token_url'),
+                null,
+                'POST',
+                MyinfoSecurityService::generateSessionKeyPair(),
+            ),
         ];
 
         if (config('laravel-myinfo-sg.debug_mode')) {

@@ -180,7 +180,7 @@ final class MyinfoSecurityService
     /*
      * D
      */
-    public function generateSessionKeyPair(): JWK
+    public static function generateSessionKeyPair(): JWK
     {
         return JWKFactory::createECKey('P-256');
     }
@@ -231,9 +231,9 @@ final class MyinfoSecurityService
     }
 
     /*
-     * Done
+     * D
      */
-    public function generateDpop(string $url, string $ath, string $method, JWK $sessionEphemeralKeyPair): string
+    public static function generateDpop(string $url, string $ath, string $method, JWK $sessionEphemeralKeyPair): string
     {
         $now = (int) round(microtime(true) * 1000);
 

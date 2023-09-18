@@ -29,7 +29,12 @@ class GetMyinfoPersonDataController extends Controller
         $code = $request->input('code');
         $codeVerifier = $request->session()->pull('code_verifier');
 
-        $personData = $laravelMyinfoSg->getMyinfoPersonData($code, $codeVerifier);
+        $personData = $laravelMyinfoSg->getMyinfoPersonData(
+            $code,
+            $codeVerifier,
+            $privateSigningKey,
+            $privateEncryptionKeys,
+        );
 
         $this->preResponseHook($request, $personData);
 
