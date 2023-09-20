@@ -29,6 +29,14 @@ class GetMyinfoPersonDataController extends Controller
         $code = $request->input('code');
         $codeVerifier = $request->session()->pull('code_verifier');
 
+        $privateSigningKey = file_get_contents(
+            config('laravel-myinfo-sg.client_assertion_private_signing_key_path')
+        );
+
+        $privateEncryptionKeys = [];
+
+        // code to read all files in the folder and add to the array above
+
         $personData = $laravelMyinfoSg->getMyinfoPersonData(
             $code,
             $codeVerifier,

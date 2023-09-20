@@ -28,6 +28,8 @@ class CallAuthoriseApiController extends Controller
         $authoriseApiUrl = $laravelMyinfoSg->generateAuthoriseApiUrl($codeChallenge);
         $request->session()->put('code_verifier', $codeVerifier);
 
+        $request->session()->put('state', $state = Str::random(40));
+
         if (config('laravel-myinfo-sg.debug_mode')) {
             Log::debug('-- Authorise Call --');
             Log::debug('Server Call Time: '.Carbon::now()->toDayDateTimeString());
