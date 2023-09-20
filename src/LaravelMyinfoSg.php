@@ -4,6 +4,7 @@ namespace Ziming\LaravelMyinfoSg;
 
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
+use Jose\Component\Core\JWK;
 use Psr\Http\Message\ResponseInterface;
 use Illuminate\Support\Carbon;
 use GuzzleHttp\Client;
@@ -64,36 +65,55 @@ class LaravelMyinfoSg
      * @throws GuzzleException|Exception
      */
     public function getMyinfoPersonData(
-        string $code,
+        string $authCode,
         string $codeVerifier,
         string $privateSigningKey,
-        array $privateEncryptionKeys
+        array  $privateEncryptionKeys
     ): array
     {
-        $tokenRequestResponse = $this->createTokenRequest(
-            $code,
+        $sessionEphemeralKeyPair = MyinfoSecurityService::generateSessionKeyPair();
+
+        $accessToken = $this->getAccessToken(
+            $authCode,
             $codeVerifier,
+            $sessionEphemeralKeyPair,
             $privateSigningKey,
-            $privateEncryptionKeys
         );
 
-        $tokenRequestResponseBody = $tokenRequestResponse->getBody();
-
-        $decoded = json_decode($tokenRequestResponseBody, true);
-
-        if ($decoded) {
-            return $this->callPersonAPI($decoded['access_token']);
-        }
-
-        throw new AccessTokenNotFoundException;
+        return $this->getPersonData(
+            $accessToken,
+            $sessionEphemeralKeyPair,
+            $privateEncryptionKeys,
+        );
     }
 
     /**
-     * Create Token Request.
-     *
-     * @throws Exception|GuzzleException
+     * D
      */
-    private function createTokenRequest(string $code, string $codeVerifier, string $privateSigningKey, array $privateEncryptionKeys): ResponseInterface
+    private function getAccessToken(string $code, string $codeVerifier, JWK $sessionEphemeralKeyPair, string $privateSigningKey): string
+    {
+        if (config('laravel-myinfo-sg.debug_mode')) {
+            Log::debug('-- Token Call --');
+            Log::debug('Server Call Time: '.Carbon::now()->toDayDateTimeString());
+            Log::debug('Authorisation Code: '.$code);
+            Log::debug('Web Request URL: '.config('laravel-myinfo-sg.api_token_url'));
+        }
+
+        $response = $this->callTokenAPI($code, $privateSigningKey, $codeVerifier, $sessionEphemeralKeyPair);
+
+        $responseBody = $response->getBody();
+
+        $decoded = json_decode($responseBody, true);
+
+        if ($decoded) {
+            return $decoded['access_token'];
+        }
+
+        throw new AccessTokenNotFoundException;
+
+    }
+
+    public function callTokenAPI(string $authCode, string $privateSigningKey, string $codeVerifier, JWK $sessionEphemeralKeyPair): ResponseInterface
     {
         $guzzleClient = new Client;
 
@@ -106,8 +126,7 @@ class LaravelMyinfoSg
             'client_id' => $this->clientId,
             'client_assertion' => 'ToDo',
             'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-            // 'client_secret' => $this->clientSecret, To remove later
-            'code' => $code,
+            'code' => $authCode,
             'code_verifier' => $codeVerifier,
         ];
 
@@ -120,34 +139,9 @@ class LaravelMyinfoSg
                 config('laravel-myinfo-sg.api_token_url'),
                 null,
                 'POST',
-                MyinfoSecurityService::generateSessionKeyPair(),
+                $sessionEphemeralKeyPair,
             ),
         ];
-
-        if (config('laravel-myinfo-sg.debug_mode')) {
-            Log::debug('-- Token Call --');
-            Log::debug('Server Call Time: '.Carbon::now()->toDayDateTimeString());
-            Log::debug('Authorisation Code: '.$code);
-            Log::debug('Web Request URL: '.config('laravel-myinfo-sg.api_token_url'));
-        }
-
-        if (config('laravel-myinfo-sg.auth_level') === 'L2') {
-            $authHeaders = MyinfoSecurityService::generateAuthorizationHeader(
-                config('laravel-myinfo-sg.api_token_url'),
-                $params,
-                $method,
-                $contentType,
-                config('laravel-myinfo-sg.auth_level'),
-                $this->clientId,
-                $this->clientSecret,
-            );
-
-            $headers['Authorization'] = $authHeaders;
-
-            if (config('laravel-myinfo-sg.debug_mode')) {
-                Log::debug('Authorization Header: '.$authHeaders);
-            }
-        }
 
         $response = $guzzleClient->post(config('laravel-myinfo-sg.api_token_url'), [
             'form_params' => $params,
@@ -164,7 +158,7 @@ class LaravelMyinfoSg
      * @throws GuzzleException
      * @throws Exception
      */
-    private function callPersonAPI(string $accessToken): array
+    private function callPersonAPI(string $uinfin, string $accessToken): array
     {
         $decoded = MyinfoSecurityService::verifyJWS($accessToken);
 
@@ -216,6 +210,21 @@ class LaravelMyinfoSg
         }
 
         throw new MyinfoPersonDataNotFoundException;
+    }
+
+    private function newCallPersonAPI(string $uinfin, string $accessToken, JWK $sessionEphemeralKeyPair): array
+    {
+        $urlLink = config('laravel-myinfo-sg.api_person_url')."/{$uinfin}/";
+
+        $headers = [
+            'Cache-Control' => 'no-cache',
+        ];
+
+        $params = [
+            'scope' => urlencode(config('laravel-myinfo-sg.scope')),
+        ];
+
+
     }
 
     /**
@@ -277,6 +286,18 @@ class LaravelMyinfoSg
         return $response;
     }
 
+    private function getPersonData(string $accessToken, JWK $sessionEphemeralKeyPair, array $privateEncryptionKeys)
+    {
+        $response = $this->getPersonDataWithToken(
+            $accessToken,
+            $sessionEphemeralKeyPair,
+            $privateEncryptionKeys,
+        );
+
+        return $response;
+    }
+
+
     public function setScope(array|string $scope): void
     {
         if (is_string($scope)) {
@@ -284,5 +305,33 @@ class LaravelMyinfoSg
         } else {
             $this->scope = join(' ', $scope);
         }
+    }
+
+    private function getPersonDataWithToken(string $accessToken, JWK $sessionEphemeralKeyPair, array $privateEncryptionKeys): array
+    {
+        $decodedToken = MyinfoSecurityService::newVerifyJWS(
+            $accessToken,
+            config('laravel-myinfo-sg.api_myinfo_jwks_url'),
+        );
+
+        if ($decodedToken === null) {
+            throw new InvalidAccessTokenException;
+        }
+
+        $uinfin = $decodedToken['sub'];
+
+        if ($uinfin === null) {
+            throw new SubNotFoundException;
+        }
+
+        $personResponse = $this->newCallPersonAPI(
+            $uinfin,
+            $accessToken,
+            $sessionEphemeralKeyPair,
+        );
+
+        return $personResponse;
+
+
     }
 }

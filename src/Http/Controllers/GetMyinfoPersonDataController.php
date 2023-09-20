@@ -26,7 +26,7 @@ class GetMyinfoPersonDataController extends Controller
             throw new InvalidStateException;
         }
 
-        $code = $request->input('code');
+        $authCode = $request->input('code');
         $codeVerifier = $request->session()->pull('code_verifier');
 
         $privateSigningKey = file_get_contents(
@@ -38,7 +38,7 @@ class GetMyinfoPersonDataController extends Controller
         // code to read all files in the folder and add to the array above
 
         $personData = $laravelMyinfoSg->getMyinfoPersonData(
-            $code,
+            $authCode,
             $codeVerifier,
             $privateSigningKey,
             $privateEncryptionKeys,

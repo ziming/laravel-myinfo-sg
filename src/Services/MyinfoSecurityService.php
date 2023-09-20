@@ -50,9 +50,9 @@ final class MyinfoSecurityService
         return $verified ? json_decode($jws->getPayload(), true) : null;
     }
 
-    public static function newVerifyJWS($compactJWS, $jwksUrl)
+    public static function newVerifyJWS($accessToken, $jwksUrl): ?array
     {
-
+        return [];
     }
 
     /**
