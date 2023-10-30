@@ -254,12 +254,20 @@ class LaravelMyinfoSg
         return $response;
     }
 
-    public function setAttributes(array|string $attributes): void
+    public function setAttributes(array|string $attributes): static
     {
         if (is_string($attributes)) {
             $this->attributes = $attributes;
         } elseif (is_array($attributes)) {
             $this->attributes = join(',', $attributes);
         }
+
+        return $this;
+    }
+
+    public function setRedirectUri(string $redirectUri): static
+    {
+        $this->redirectUri = $redirectUri;
+        return $this;
     }
 }
