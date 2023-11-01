@@ -298,13 +298,21 @@ class LaravelMyinfoSg
     }
 
 
-    public function setScope(array|string $scope): void
+    public function setScope(array|string $scope): static
     {
         if (is_string($scope)) {
             $this->scope = $scope;
         } else {
             $this->scope = join(' ', $scope);
         }
+
+        return $this;
+    }
+
+    public function setRedirectUri(string $redirectUri): static
+    {
+        $this->redirectUri = $redirectUri;
+        return $this;
     }
 
     private function getPersonDataWithToken(string $accessToken, JWK $sessionEphemeralKeyPair, array $privateEncryptionKeys): array

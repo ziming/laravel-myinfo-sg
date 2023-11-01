@@ -20,12 +20,6 @@ class GetMyinfoPersonDataController extends Controller
      */
     public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg, ResponseFactory $responseFactory): JsonResponse
     {
-        $state = $request->input('state');
-
-        if ($state === null || $state !== $request->session()->pull('state')) {
-            throw new InvalidStateException;
-        }
-
         $authCode = $request->input('code');
         $codeVerifier = $request->session()->pull('code_verifier');
 
