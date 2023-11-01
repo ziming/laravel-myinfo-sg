@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\File;
 use Ziming\LaravelMyinfoSg\Exceptions\InvalidStateException;
 use Ziming\LaravelMyinfoSg\LaravelMyinfoSg;
 
@@ -29,7 +30,13 @@ class GetMyinfoPersonDataController extends Controller
 
         $privateEncryptionKeys = [];
 
-        // code to read all files in the folder and add to the array above
+        $files = File::allFiles(
+            config('laravel-myinfo-sg.private_encryption_keys_folder_path')
+        );
+
+        foreach ($files as $file) {
+            $privateEncryptionKeys[] = $file->getContents();
+        }
 
         $personData = $laravelMyinfoSg->getMyinfoPersonData(
             $authCode,
