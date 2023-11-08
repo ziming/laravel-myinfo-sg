@@ -62,7 +62,7 @@ class LaravelMyinfoSg
      * Get MyInfo Person Data in an array with a 'data' key.
      *
      * @return array<string, mixed>|array<string, array>
-     * @throws Exception
+     * @throws GuzzleException
      */
     public function getMyinfoPersonData(
         string $authCode,
@@ -297,7 +297,7 @@ class LaravelMyinfoSg
         return $response;
     }
 
-    private function getPersonData(string $accessToken, JWK $sessionEphemeralKeyPair, array $privateEncryptionKeys)
+    private function getPersonData(string $accessToken, JWK $sessionEphemeralKeyPair, array $privateEncryptionKeys): array
     {
         $response = $this->getPersonDataWithToken(
             $accessToken,
@@ -326,12 +326,20 @@ class LaravelMyinfoSg
         return $this;
     }
 
+    /*
+     * to continue
+     */
     private function getPersonDataWithToken(string $accessToken, JWK $sessionEphemeralKeyPair, array $privateEncryptionKeys): array
     {
+
         $decodedToken = MyinfoSecurityService::newVerifyJWS(
             $accessToken,
             config('laravel-myinfo-sg.api_myinfo_jwks_url'),
         );
+
+        if (config('laravel-myinfo-sg.debug_mode')) {
+            Log::debug('Decoded Access Token (From Token API)', $decodedToken);
+        }
 
         if ($decodedToken === null) {
             throw new InvalidAccessTokenException;

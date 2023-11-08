@@ -3,6 +3,7 @@
 namespace Ziming\LaravelMyinfoSg\Services;
 
 use Exception;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Jose\Component\Core\AlgorithmManager;
@@ -50,8 +51,18 @@ final class MyinfoSecurityService
         return $verified ? json_decode($jws->getPayload(), true) : null;
     }
 
+    /**
+     * @throws \JsonException
+     */
     public static function newVerifyJWS($accessToken, $jwksUrl): ?array
     {
+        $jwks = Http::get($jwksUrl)
+            ->body();
+
+        $keyStore = JWK::createFromJson($jwks);
+
+
+
         return [];
     }
 
