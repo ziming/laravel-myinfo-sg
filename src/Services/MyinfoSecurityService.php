@@ -184,7 +184,14 @@ final class MyinfoSecurityService
         return JWKFactory::createECKey('P-256');
     }
 
-    public function generateClientAssertion(string $url, string $clientId, string $privateSigningKey, string $jktThumbprint, string $kid): string
+    public static function generateJwkThumbprint(JWK $jwk): string
+    {
+        return base64_decode(
+            $jwk->thumbprint('SHA-256')
+        );
+    }
+
+    public static function generateClientAssertion(string $url, string $clientId, string $privateSigningKey, string $jktThumbprint, ?string $kid = null): string
     {
         // https://github.com/singpass/myinfo-connector-v4-nodejs/blob/main/lib/securityHelper.js
 
@@ -232,7 +239,7 @@ final class MyinfoSecurityService
     /*
      * D
      */
-    public static function generateDpop(string $url, string $ath, string $method, JWK $sessionEphemeralKeyPair): string
+    public static function generateDpop(string $url, ?string $ath, string $method, JWK $sessionEphemeralKeyPair): string
     {
         $now = (int) round(microtime(true) * 1000);
 

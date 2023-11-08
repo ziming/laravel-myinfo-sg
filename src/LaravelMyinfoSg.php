@@ -62,7 +62,7 @@ class LaravelMyinfoSg
      * Get MyInfo Person Data in an array with a 'data' key.
      *
      * @return array<string, mixed>|array<string, array>
-     * @throws GuzzleException|Exception
+     * @throws Exception
      */
     public function getMyinfoPersonData(
         string $authCode,
@@ -89,6 +89,7 @@ class LaravelMyinfoSg
 
     /**
      * D
+     * @throws GuzzleException
      */
     private function getAccessToken(string $code, string $codeVerifier, JWK $sessionEphemeralKeyPair, string $privateSigningKey): string
     {
@@ -103,7 +104,7 @@ class LaravelMyinfoSg
 
         $responseBody = $response->getBody();
 
-        $decoded = json_decode($responseBody, true);
+        $decoded = json_decode((string) $responseBody, true);
 
         if ($decoded) {
             return $decoded['access_token'];
@@ -113,26 +114,36 @@ class LaravelMyinfoSg
 
     }
 
+    /**
+     * @throws GuzzleException
+     */
     public function callTokenAPI(string $authCode, string $privateSigningKey, string $codeVerifier, JWK $sessionEphemeralKeyPair): ResponseInterface
     {
         $guzzleClient = new Client;
 
-        $contentType = 'application/x-www-form-urlencoded';
-        $method = 'POST';
+        $jktThumbprint = MyinfoSecurityService::generateJwkThumbprint(
+            $sessionEphemeralKeyPair->toPublic()
+        );
 
         $params = [
             'grant_type' => 'authorization_code',
+            'code' => $authCode,
             'redirect_uri' => $this->redirectUri,
             'client_id' => $this->clientId,
-            'client_assertion' => 'ToDo',
-            'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-            'code' => $authCode,
             'code_verifier' => $codeVerifier,
+            'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+            'client_assertion' => MyinfoSecurityService::generateClientAssertion(
+                config('laravel-myinfo-sg.api_token_url'),
+                $this->clientId,
+                $privateSigningKey,
+                $jktThumbprint,
+                // kid is optional, leave out for now
+            )
         ];
 
         $headers = [
             'Cache-Control' => 'no-cache',
-            'Content-Type' => $contentType,
+            'Content-Type' => 'application/x-www-form-urlencoded',
             'Accept' => 'application/json',
             'Accept-Encoding' => 'gzip',
             'DPoP' => MyinfoSecurityService::generateDpop(
