@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Core\JWK;
+use Jose\Component\Core\JWKSet;
 use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
 use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
 use Jose\Component\Encryption\Compression\CompressionMethodManager;
@@ -53,17 +54,25 @@ final class MyinfoSecurityService
 
     /**
      * @throws \JsonException
+     * @throws Exception
      */
-    public static function newVerifyJWS($accessToken, $jwksUrl): ?array
+    public static function newVerifyJWS($compactJWS, $jwksUrl): ?array
     {
-        $jwks = Http::get($jwksUrl)
-            ->body();
+        $jwks = file_get_contents($jwksUrl);
+        $keySet = JWKSet::createFromJson($jwks);
 
-        $keyStore = JWK::createFromJson($jwks);
+        $serializerManager = new CompactSerializer();
+        $jws = $serializerManager->unserialize($compactJWS);
 
+        // should read the json and use the algorithm specify there i think
+        $algorithmManager = new AlgorithmManager([new RS256()]);
+        $jwsVerifier = new JWSVerifier($algorithmManager);
 
+        if ($jwsVerifier->verifyWithKeySet($jws, $keySet, 0)) {
+            return json_decode($jws->getPayload(), true);
+        }
 
-        return [];
+        throw new Exception('Error with verifying JWS');
     }
 
     /**

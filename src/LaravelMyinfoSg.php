@@ -329,6 +329,9 @@ class LaravelMyinfoSg
     /*
      * to continue
      */
+    /**
+     * @throws \JsonException
+     */
     private function getPersonDataWithToken(string $accessToken, JWK $sessionEphemeralKeyPair, array $privateEncryptionKeys): array
     {
 

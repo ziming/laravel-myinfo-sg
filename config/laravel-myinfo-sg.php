@@ -22,7 +22,7 @@ return [
     'api_person_url'    => env('MYINFO_API_PERSON', 'https://test.api.myinfo.gov.sg/com/v4/person'),
 
     'api_authorise_jwks_url' => env('MYINFO_API_AUTHORISE_JWKS_URL', 'https://test.authorise.singpass.gov.sg/.well-known/keys.json'),
-    'api_api_myinfo_jwks_url' => env('MYINFO_API_MYINFO_JWKS_URL', 'https://test.myinfo.singpass.gov.sg/.well-known/keys.json'),
+    'api_myinfo_jwks_url' => env('MYINFO_API_MYINFO_JWKS_URL', 'https://test.myinfo.singpass.gov.sg/.well-known/keys.json'),
 
     // If this is false, call_authorise_api_url and get_myinfo_person_data_url routes would not be registered
     'enable_default_myinfo_routes' => true,
