@@ -19,7 +19,7 @@
         "ext-gmp": "*",
         "ext-json": "*",
         "ext-openssl": "*",
-        "archtechx/enums": "^0.3.1",
+        "archtechx/enums": "^1.0",
         "guzzlehttp/guzzle": "^7.0",
         "illuminate/contracts": "^10.0",
         "spatie/laravel-package-tools": "^1.4.3",
