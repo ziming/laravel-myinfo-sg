@@ -55,6 +55,8 @@ final class MyinfoSecurityService
     /**
      * @throws \JsonException
      * @throws Exception
+     *
+     * wip
      */
     public static function newVerifyJWS($compactJWS, $jwksUrl): ?array
     {
@@ -229,8 +231,6 @@ final class MyinfoSecurityService
             ]
         ];
 
-        // to continue
-        // $jwsKey = jose.JWK.asKey($privateSigningKey, 'pem');
         $jwsKey = JWKFactory::createFromKey($privateSigningKey);
 
         $algorithmManager = new AlgorithmManager([new ES256]);

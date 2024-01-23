@@ -4,6 +4,7 @@ namespace Ziming\LaravelMyinfoSg;
 
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Support\Facades\Http;
 use Jose\Component\Core\JWK;
 use Psr\Http\Message\ResponseInterface;
 use Illuminate\Support\Carbon;
@@ -224,9 +225,16 @@ class LaravelMyinfoSg
         throw new MyinfoPersonDataNotFoundException;
     }
 
+    /**
+     * wip
+     */
     private function newCallPersonAPI(string $uinfin, string $accessToken, JWK $sessionEphemeralKeyPair): array
     {
+        // ignore mib or proxy stuffs
+
+        // different for mib
         $urlLink = config('laravel-myinfo-sg.api_person_url')."/{$uinfin}/";
+
 
         $headers = [
             'Cache-Control' => 'no-cache',
@@ -234,8 +242,39 @@ class LaravelMyinfoSg
 
         $params = [
             'scope' => urlencode(config('laravel-myinfo-sg.scope')),
+            // will add on for mib subentity but this is not mib
         ];
 
+        $strParams = http_build_query($params);
+
+
+
+        $ath = base64_encode(hash('sha256', $accessToken));
+
+        $dpopToken = MyinfoSecurityService::generateDpop(
+            $urlLink,
+            $ath,
+            'GET',
+            $sessionEphemeralKeyPair,
+        );
+
+        $headers['dpop'] = $dpopToken;
+
+        $headers['Authorization'] = 'DPoP '.$accessToken;
+
+        if (config('laravel-myinfo-sg.debug_mode')) {
+            Log::debug('Authorization Header for MyInfo Person API: ', $headers);
+        }
+
+        $personUrl = config('laravel-myinfo-sg.api_person_url');
+        $domain = parse_url($personUrl, PHP_URL_HOST);
+        $personUrlPath = parse_url($personUrl, PHP_URL_PATH);
+
+        $requestPath = "{$personUrlPath}/{$uinfin}?{$strParams}";
+
+        $personDataResponse = Http::get("https://{$domain}/{$requestPath}", $headers);
+
+        return $personDataResponse->json()['data'];
 
     }
 
@@ -331,7 +370,7 @@ class LaravelMyinfoSg
     }
 
     /*
-     * TO CONTINUE!
+     * wip
      */
     /**
      * @throws \JsonException
