@@ -63,6 +63,7 @@ class LaravelMyinfoSg
      *
      * @return array<string, mixed>|array<string, array>
      * @throws GuzzleException
+     * @throws \JsonException
      */
     public function getMyinfoPersonData(
         string $authCode,
@@ -297,6 +298,9 @@ class LaravelMyinfoSg
         return $response;
     }
 
+    /**
+     * @throws \JsonException
+     */
     private function getPersonData(string $accessToken, JWK $sessionEphemeralKeyPair, array $privateEncryptionKeys): array
     {
         $response = $this->getPersonDataWithToken(
@@ -327,7 +331,7 @@ class LaravelMyinfoSg
     }
 
     /*
-     * to continue
+     * TO CONTINUE!
      */
     /**
      * @throws \JsonException
