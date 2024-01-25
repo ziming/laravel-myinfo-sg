@@ -23,6 +23,9 @@ enum HdbTypeEnum: string
     case EXECUTIVE_FLAT = 'EXECUTIVE FLAT (HDB)';
     case STUDIO_APARTMENT = 'STUDIO APARTMENT (HDB)';
 
+    // in really rare cases some people myinfo have this.
+    case HDB = 'HDB';
+
     public static function getOptions(): array
     {
         return array_column(self::cases(), 'value', 'value');
