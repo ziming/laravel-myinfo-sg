@@ -18,7 +18,7 @@ enum HousingTypeEnum: string
 
     // in really rare cases some people myinfo have this.
     case HDB = 'HDB';
-    
+
     case ONE_ROOM_FLAT = '1-ROOM FLAT (HDB)';
     case TWO_ROOM_FLAT = '2-ROOM FLAT (HDB)';
     case THREE_ROOM_FLAT = '3-ROOM FLAT (HDB)';
@@ -32,8 +32,15 @@ enum HousingTypeEnum: string
     case SEMI_DETACHED_HOUSE = 'SEMI-DETACHED HOUSE';
     case TERRACE_HOUSE = 'TERRACE HOUSE';
     case CONDOMINIUM = 'CONDOMINIUM';
+
+    // in really rare cases some people myinfo have this.
+    case CONDO = 'CONDO';
+    
     case EXECUTIVE_CONDOMINIUM = 'EXECUTIVE CONDOMINIUM';
     case APARTMENT = 'APARTMENT';
+
+
+
 
     case NO_HOUSE = '';
 
