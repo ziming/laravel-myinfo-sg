@@ -15,6 +15,10 @@ enum HousingTypeEnum: string
     use Names, Values, Options;
 
     // HDB
+
+    // in really rare cases some people myinfo have this.
+    case HDB = 'HDB';
+    
     case ONE_ROOM_FLAT = '1-ROOM FLAT (HDB)';
     case TWO_ROOM_FLAT = '2-ROOM FLAT (HDB)';
     case THREE_ROOM_FLAT = '3-ROOM FLAT (HDB)';
