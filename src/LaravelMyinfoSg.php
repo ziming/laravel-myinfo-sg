@@ -106,6 +106,10 @@ class LaravelMyinfoSg
 
         $responseBody = $response->getBody();
 
+        if (config('laravel-myinfo-sg.debug_mode') === true) {
+            Log::debug('Access Token Respponse: '. $responseBody);
+        }
+
         $decoded = json_decode((string) $responseBody, true);
 
         if ($decoded) {

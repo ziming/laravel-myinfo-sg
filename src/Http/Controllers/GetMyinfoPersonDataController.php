@@ -17,7 +17,7 @@ class GetMyinfoPersonDataController extends Controller
     /**
      * Fetch MyInfo Person Data after authorization code is given back.
      *
-     * @throws GuzzleException
+     * @throws GuzzleException|\JsonException
      */
     public function __invoke(Request $request, LaravelMyinfoSg $laravelMyinfoSg, ResponseFactory $responseFactory): JsonResponse
     {
