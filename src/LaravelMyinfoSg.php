@@ -169,67 +169,6 @@ class LaravelMyinfoSg
     }
 
     /**
-     * Call Person API.
-     *
-     * @return array<string, mixed>|array<string, array>
-     * @throws GuzzleException
-     * @throws Exception
-     */
-    private function callPersonAPI(string $uinfin, string $accessToken): array
-    {
-        $decoded = MyinfoSecurityService::verifyJWS($accessToken);
-
-        if ($decoded === null) {
-            throw new InvalidAccessTokenException;
-        }
-
-        $sub = $decoded['sub'];
-
-        if ($sub === null) {
-            throw new SubNotFoundException;
-        }
-
-        $personRequestResponse = $this->createPersonRequest($sub, $accessToken);
-        $personRequestResponseBody = $personRequestResponse->getBody();
-        $personRequestResponseContent = $personRequestResponseBody->getContents();
-
-        if ($personRequestResponseContent) {
-            $personData = json_decode($personRequestResponseContent, true);
-
-            $authLevel = config('laravel-myinfo-sg.auth_level');
-
-            if ($authLevel === 'L0') {
-                return [
-                    'data' => $personData,
-                ];
-            } elseif ($authLevel === 'L2') {
-                $personData = $personRequestResponseContent;
-
-                $personDataJWS = MyInfoSecurityService::decryptJWE(
-                    $personData,
-                    $this->clientSecret
-                );
-
-                if ($personDataJWS === null) {
-                    throw new InvalidDataOrSignatureForPersonDataException;
-                }
-
-                $decodedPersonData = MyInfoSecurityService::verifyJWS($personDataJWS);
-
-                if ($decodedPersonData === null) {
-                    throw new InvalidDataOrSignatureForPersonDataException;
-                }
-
-                return [
-                    'data' => $decodedPersonData,
-                ];
-            }
-        }
-
-        throw new MyinfoPersonDataNotFoundException;
-    }
-
-    /**
      * wip
      */
     private function newCallPersonAPI(string $uinfin, string $accessToken, JWK $sessionEphemeralKeyPair): array
@@ -280,65 +219,6 @@ class LaravelMyinfoSg
 
         return $personDataResponse->json()['data'];
 
-    }
-
-    /**
-     * Create Person Request.
-     *
-     * @throws Exception|GuzzleException
-     */
-    private function createPersonRequest(string $sub, string $validAccessToken): ResponseInterface
-    {
-        $guzzleClient = new Client;
-
-        $url = config('laravel-myinfo-sg.api_person_url')."/{$sub}/";
-
-        $params = [
-            'client_id' => $this->clientId,
-            'scope' => $this->scope,
-        ];
-
-        $headers = [
-            'Cache-Control' => 'no-cache',
-            'Accept-Encoding' => 'gzip',
-        ];
-
-        if (config('laravel-myinfo-sg.debug_mode')) {
-            Log::debug('-- Person Call --');
-            Log::debug('Server Call Time: '.Carbon::now()->toDayDateTimeString());
-            Log::debug('Bearer Token: '.$validAccessToken);
-            Log::debug('Web Request URL: '.$url);
-        }
-
-        $authHeaders = MyInfoSecurityService::generateAuthorizationHeader(
-            $url,
-            $params,
-            'GET',
-            '',
-            config('laravel-myinfo-sg.auth_level'),
-            $this->clientId,
-            $this->clientSecret
-        );
-
-        if ($authHeaders) {
-            $headers['Authorization'] = $authHeaders.',Bearer '.$validAccessToken;
-        } else {
-            $headers['Authorization'] = 'Bearer '.$validAccessToken;
-        }
-
-        if (config('laravel-myinfo-sg.debug_mode')) {
-            Log::debug('-- Person Call --');
-            Log::debug('Server Call Time: '.Carbon::now()->toDayDateTimeString());
-            Log::debug('Bearer Token: '.$validAccessToken);
-            Log::debug('Authorization Header: '.$headers['Authorization']);
-        }
-
-        $response = $guzzleClient->get($url, [
-            'query' => $params,
-            'headers' => $headers,
-        ]);
-
-        return $response;
     }
 
     /**
