@@ -10,6 +10,16 @@ time wasting hidden quirks of implementing it in PHP figured out.
 
 <a href="https://www.ndi-api.gov.sg/library/trusted-data/myinfo/overview" rel="noreferrer nofollow">Official MyInfo Docs</a>
 
+## Will Myinfo v4 be supported?
+
+There is recently an announcement that there will be a new Myinfo version that replaces Myinfo v4.
+
+Therefore, it is not mandatory to upgrade from Myinfo v3 to Myinfo v4 anymore. Which means I will not work on supporting Myinfo v4 unless I am too free (which most likely mean never)
+
+So you do not have to email me demanding it anymore.
+
+Hope everyone is happy with this good news :)
+
 ## Installation
 
 You can install the package via composer:
