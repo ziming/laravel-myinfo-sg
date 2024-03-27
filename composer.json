@@ -30,7 +30,7 @@
         "nunomaduro/collision": "^6.0||^7.0||^8.0",
         "orchestra/testbench": "^8.0"||^9.0,
         "phpunit/phpunit": "^9.5.10||^10.0",
-        "rector/rector": "^0.17||^1.0",
+        "rector/rector": "^1.0",
         "spatie/laravel-ray": "^1.23",
         "vimeo/psalm": "^5.0"
     },
