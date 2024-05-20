@@ -7,8 +7,6 @@ use Illuminate\Support\Facades\Log;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
 use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP;
-use Jose\Component\Encryption\Compression\CompressionMethodManager;
-use Jose\Component\Encryption\Compression\Deflate;
 use Jose\Component\Encryption\JWEDecrypter;
 use Jose\Component\Encryption\Serializer\JWESerializerManager;
 use Jose\Component\KeyManagement\JWKFactory;
@@ -149,12 +147,9 @@ final class MyinfoSecurityService
 
         $contentEncryptionAlgorithmManager = new AlgorithmManager([new A256GCM]);
 
-        $compressionMethodManager = new CompressionMethodManager([new Deflate]);
-
         $jweDecrypter = new JWEDecrypter(
             $keyEncryptionAlgorithmManager,
             $contentEncryptionAlgorithmManager,
-            $compressionMethodManager
         );
 
         $recipient = 0;
