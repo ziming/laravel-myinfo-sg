@@ -145,10 +145,11 @@ final class MyinfoSecurityService
 
         $keyEncryptionAlgorithmManager = new AlgorithmManager([new RSAOAEP]);
 
+        $contentEncryptionAlgorithmManager = new AlgorithmManager([new A256GCM]);
 
         $jweDecrypter = new JWEDecrypter(
             $keyEncryptionAlgorithmManager,
-            null,
+            $contentEncryptionAlgorithmManager
         );
 
         $recipient = 0;
