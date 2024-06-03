@@ -404,6 +404,16 @@ final class MyinfoValueFetcher
         return Arr::get($this->cpfHousingWithdrawals(), "{$index}.address.type") ?: null;
     }
 
+    public function cpfHousingWithdrawalsRowAddressLine1(int $index): ?string
+    {
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.address.line1.value") ?: null;
+    }
+
+    public function cpfHousingWithdrawalsRowAddressLine2(int $index): ?string
+    {
+        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.address.line2.value") ?: null;
+    }
+
     public function cpfHousingWithdrawalsRowAddressBlock(int $index): ?string
     {
         return Arr::get($this->cpfHousingWithdrawals(), "{$index}.address.block.value") ?: null;
