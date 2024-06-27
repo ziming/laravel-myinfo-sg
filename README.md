@@ -15,9 +15,11 @@ There is recently an announcement that there will be a new Myinfo version that r
 
 Therefore, it is not mandatory to upgrade from Myinfo v3 to Myinfo v4 anymore. Which means I will not work on supporting Myinfo v4 unless I am too free (which most likely mean never)
 
-So you do not have to email me demanding it anymore.
+So there is no need to email me to demand it anymore.
 
 Hope everyone is happy with this good news :)
+
+But if you want to make a PR to support Myinfo v4, I will be open to take a look at it
 
 ## Installation
 
