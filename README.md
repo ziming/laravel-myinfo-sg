@@ -7,7 +7,7 @@
 A working PHP Laravel Package for MyInfo Singapore. With the annoying, 
 time wasting hidden quirks of implementing it in PHP figured out. 
 
-<a href="https://www.ndi-api.gov.sg/library/trusted-data/myinfo/overview" rel="noreferrer nofollow">Official MyInfo Docs</a>
+<a href="https://api.singpass.gov.sg/library/myinfo/v3/developers/overview" rel="noreferrer nofollow">Official MyInfo Docs</a>
 
 ## Will Myinfo v4 be supported?
 
