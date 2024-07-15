@@ -147,7 +147,6 @@ final class MyinfoSecurityService
 
         $jweDecrypter = new JWEDecrypter(
             $keyEncryptionAlgorithmManager,
-            null
         );
 
         $recipient = 0;
