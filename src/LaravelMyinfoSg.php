@@ -19,6 +19,7 @@ class LaravelMyinfoSg
 {
     public function __construct(
         private ?string $clientId = null,
+        #[\SensitiveParameter]
         private ?string $clientSecret = null,
         private ?string $attributes = null,
         private ?string $purpose = null,
@@ -61,7 +62,10 @@ class LaravelMyinfoSg
      * @return array<string, mixed>|array<string, array>
      * @throws GuzzleException|Exception
      */
-    public function getMyinfoPersonData(string $code): array
+    public function getMyinfoPersonData(
+        #[\SensitiveParameter]
+        string $code
+    ): array
     {
         $tokenRequestResponse = $this->createTokenRequest($code);
 
@@ -81,7 +85,10 @@ class LaravelMyinfoSg
      *
      * @throws Exception|GuzzleException
      */
-    private function createTokenRequest(string $code): ResponseInterface
+    private function createTokenRequest(
+        #[\SensitiveParameter]
+        string $code
+    ): ResponseInterface
     {
         $guzzleClient = new Client;
 
@@ -141,7 +148,10 @@ class LaravelMyinfoSg
      * @throws Exception
      * @return array<string, mixed>|array<string, array>
      */
-    private function callPersonAPI(string $accessToken): array
+    private function callPersonAPI(
+        #[\SensitiveParameter]
+        string $accessToken
+    ): array
     {
         $decoded = MyinfoSecurityService::verifyJWS($accessToken);
 
@@ -200,7 +210,12 @@ class LaravelMyinfoSg
      *
      * @throws Exception|GuzzleException
      */
-    private function createPersonRequest(string $sub, string $validAccessToken): ResponseInterface
+    private function createPersonRequest(
+        #[\SensitiveParameter]
+        string $sub,
+        #[\SensitiveParameter]
+        string $validAccessToken
+    ): ResponseInterface
     {
         $guzzleClient = new Client;
 

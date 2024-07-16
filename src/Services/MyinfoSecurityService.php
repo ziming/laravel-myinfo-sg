@@ -25,7 +25,10 @@ final class MyinfoSecurityService
      *
      * @throws Exception
      */
-    public static function verifyJWS(string $accessToken): ?array
+    public static function verifyJWS(
+        #[\SensitiveParameter]
+        string $accessToken
+    ): ?array
     {
         $algorithmManager = new AlgorithmManager([new RS256]);
 
@@ -49,9 +52,15 @@ final class MyinfoSecurityService
      *
      * @throws Exception
      */
-    public static function generateAuthorizationHeader(string $url, array $params, string $method, string $contentType,
-                                                       string $authType, string $appId,
-                                                       string $passphrase): string
+    public static function generateAuthorizationHeader(string $url,
+                                                       array $params,
+                                                       string $method,
+                                                       string $contentType,
+                                                       string $authType,
+                                                       string $appId,
+                                                       #[\SensitiveParameter]
+                                                       string $passphrase
+    ): string
     {
         if ($authType === 'L2') {
             return self::generateSHA256withRSAHeader($url, $params, $method, $contentType, $appId, $passphrase);
@@ -65,7 +74,15 @@ final class MyinfoSecurityService
      *
      * @throws Exception
      */
-    private static function generateSHA256withRSAHeader(string $url, array $params, string $method, string $contentType, string $appId, string $passphrase): string
+    private static function generateSHA256withRSAHeader(
+        string $url,
+        array $params,
+        string $method,
+        string $contentType,
+        string $appId,
+        #[\SensitiveParameter]
+        string $passphrase
+    ): string
     {
         $nonce = random_int(PHP_INT_MIN, PHP_INT_MAX);
 
@@ -119,7 +136,12 @@ final class MyinfoSecurityService
      *
      * @throws Exception
      */
-    public static function decryptJWE(string $personDataToken, string $passphrase = null): array|string
+    public static function decryptJWE(
+        #[\SensitiveParameter]
+        string $personDataToken,
+        #[\SensitiveParameter]
+        string $passphrase = null
+    ): array|string
     {
         // $passphrase is by default null for backward compatibility purpose as I want to avoid a major version bump
         $passphrase = ($passphrase === null) ? config('laravel-myinfo-sg.client_secret') : $passphrase;
