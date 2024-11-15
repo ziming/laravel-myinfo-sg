@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ziming\LaravelMyinfoSg\Exceptions;
 
 use Exception;
@@ -15,8 +17,6 @@ class InvalidStateException extends HttpException
 
     /**
      * Render the exception into an HTTP response.
-     *
-     * @param  \Illuminate\Http\Request
      */
     public function render(): JsonResponse
     {

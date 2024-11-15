@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ziming\LaravelMyinfoSg\Http\Controllers;
 
 use Exception;

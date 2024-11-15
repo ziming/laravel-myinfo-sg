@@ -145,8 +145,8 @@ class LaravelMyinfoSg
     /**
      * Call Person API.
      *
-     * @throws Exception
      * @return array<string, mixed>|array<string, array>
+     * @throws GuzzleException
      */
     private function callPersonAPI(
         #[\SensitiveParameter]

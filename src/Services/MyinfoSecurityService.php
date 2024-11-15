@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ziming\LaravelMyinfoSg\Services;
 
 use Exception;
@@ -177,8 +179,6 @@ final class MyinfoSecurityService
 
         $payload = $jwe->getPayload();
 
-        $payload = str_replace('"', '', $payload);
-
-        return $payload;
+        return str_replace('"', '', $payload);
     }
 }

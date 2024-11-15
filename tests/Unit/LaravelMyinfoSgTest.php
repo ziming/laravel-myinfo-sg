@@ -1,6 +1,8 @@
 <?php
 
-namespace Ziming\LaravelMyinfoSg\Tests\Feature\Http\Controllers;
+declare(strict_types=1);
+
+namespace Ziming\LaravelMyinfoSg\Tests\Unit;
 
 use Illuminate\Support\Str;
 use Ziming\LaravelMyinfoSg\LaravelMyinfoSg;
@@ -16,7 +18,7 @@ class LaravelMyinfoSgTest extends TestCase
         $this->laravelMyinfoSg = new LaravelMyinfoSg;
     }
 
-    public function testgenerateAuthoriseApiUrl()
+    public function testGenerateAuthoriseApiUrl()
     {
         $state = Str::random(40);
         $redirectUri = $this->laravelMyinfoSg->generateAuthoriseApiUrl($state);

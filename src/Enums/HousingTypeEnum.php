@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ziming\LaravelMyinfoSg\Enums;
 
 use ArchTech\Enums\Names;
@@ -35,7 +37,7 @@ enum HousingTypeEnum: string
 
     // in really rare cases some people myinfo have this.
     case CONDO = 'CONDO';
-    
+
     case EXECUTIVE_CONDOMINIUM = 'EXECUTIVE CONDOMINIUM';
     case APARTMENT = 'APARTMENT';
 
