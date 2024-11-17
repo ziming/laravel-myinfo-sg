@@ -2,12 +2,7 @@
 
 declare(strict_types=1);
 
-use Rector\CodeQuality\Rector\Class_\InlineConstructorDefaultToPropertyRector;
 use Rector\Config\RectorConfig;
-use Rector\Laravel\Set\LaravelSetList;
-use Rector\PHPUnit\Set\PHPUnitSetList;
-use Rector\Set\ValueObject\DowngradeLevelSetList;
-use Rector\Set\ValueObject\LevelSetList;
 use Rector\Set\ValueObject\SetList;
 
 return static function (RectorConfig $rectorConfig): void {
@@ -34,7 +29,6 @@ return static function (RectorConfig $rectorConfig): void {
         //        SetList::NAMING,
         SetList::TYPE_DECLARATION,
         // SetList::EARLY_RETURN,
-        SetList::TYPE_DECLARATION_STRICT,
         //PHPUnitSetList::PHPUNIT_CODE_QUALITY,
 //         SetList::CODING_STYLE,
     ]);
