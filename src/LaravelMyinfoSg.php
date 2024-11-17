@@ -273,7 +273,7 @@ class LaravelMyinfoSg
     {
         if (is_string($attributes)) {
             $this->attributes = $attributes;
-        } elseif (is_array($attributes)) {
+        } else {
             $this->attributes = join(',', $attributes);
         }
 
