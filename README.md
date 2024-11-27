@@ -16,7 +16,9 @@ Recently the new version is out in November 2024 and sites on Myinfo v3 are give
 
 As usual, my other work & personal life commitments will come 1st but I will still try to get it out before Myinfo v3 expires
 
-Hope that helps
+If anyone wants to make a PR before my own attempt, you are welcome to do so too
+
+Hope that helps for those who emailed me.
 
 ## Installation
 
