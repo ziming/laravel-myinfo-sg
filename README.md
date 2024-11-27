@@ -8,17 +8,15 @@ time wasting hidden quirks of implementing it in PHP figured out.
 
 <a href="https://api.singpass.gov.sg/library/myinfo/v3/developers/overview" rel="noreferrer nofollow">Official MyInfo Docs</a>
 
-## Will Myinfo v4 be supported?
+## Will the new Myinfo be supported?
 
-There is recently an announcement that there will be a new Myinfo version that replaces Myinfo v4.
+Yes, it is in my plans, previously I did not support Myinfo v4 as they announced that a new version will come out
 
-Therefore, it is not mandatory to upgrade from Myinfo v3 to Myinfo v4 anymore. Which means I will not work on supporting Myinfo v4 unless I am too free (which most likely mean never)
+Recently the new version is out in November 2024 and sites on Myinfo v3 are given 6 months to upgrade.
 
-So there is no need to email me to demand it anymore.
+As usual, my other work & personal life commitments will come 1st but I will still try to get it out before Myinfo v3 expires
 
-Hope everyone is happy with this good news :)
-
-But if you want to make a PR to support Myinfo v4, I will be open to take a look at it
+Hope that helps
 
 ## Installation
 
