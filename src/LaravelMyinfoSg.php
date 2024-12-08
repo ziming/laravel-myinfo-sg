@@ -134,12 +134,10 @@ class LaravelMyinfoSg
             }
         }
 
-        $response = $guzzleClient->post(config('laravel-myinfo-sg.api_token_url'), [
+        return $guzzleClient->post(config('laravel-myinfo-sg.api_token_url'), [
             'form_params' => $params,
             'headers' => $headers,
         ]);
-
-        return $response;
     }
 
     /**
@@ -147,6 +145,7 @@ class LaravelMyinfoSg
      *
      * @return array<string, mixed>|array<string, array>
      * @throws GuzzleException
+     * @throws Exception
      */
     private function callPersonAPI(
         #[\SensitiveParameter]

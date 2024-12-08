@@ -143,7 +143,7 @@ final class MyinfoSecurityService
         string $personDataToken,
         #[\SensitiveParameter]
         string $passphrase = null
-    ): array|string
+    ): ?string
     {
         // $passphrase is by default null for backward compatibility purpose as I want to avoid a major version bump
         $passphrase = ($passphrase === null) ? config('laravel-myinfo-sg.client_secret') : $passphrase;
@@ -178,6 +178,10 @@ final class MyinfoSecurityService
         $jweDecrypter->decryptUsingKey($jwe, $jwk, $recipient);
 
         $payload = $jwe->getPayload();
+
+        if ($payload === null) {
+            return null;
+        }
 
         return str_replace('"', '', $payload);
     }
