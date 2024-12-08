@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ziming\LaravelMyinfoSg\Utils;
 
-use Illuminate\Support\Carbon;
+use Carbon\Carbon;
 
 /*
  * @internal
