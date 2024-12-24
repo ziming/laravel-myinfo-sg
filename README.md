@@ -12,7 +12,7 @@ time wasting hidden quirks of implementing it in PHP figured out.
 
 Yes, it is in my plans, previously I did not support Myinfo v4 as they announced that a new version will come out
 
-Recently the new version is out in November 2024 and sites on Myinfo v3 are given 6 months to upgrade.
+Recently the new version is out in November 2024 and sites on Myinfo v3 are given until 30 June 2024 to upgrade.
 
 As usual, my other work & personal life commitments will come 1st but I will still try to get it out before Myinfo v3 expires
 
