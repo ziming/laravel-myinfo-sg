@@ -142,7 +142,7 @@ final class MyinfoSecurityService
         #[\SensitiveParameter]
         string $personDataToken,
         #[\SensitiveParameter]
-        string $passphrase = null
+        ?string $passphrase = null
     ): ?string
     {
         // $passphrase is by default null for backward compatibility purpose as I want to avoid a major version bump
