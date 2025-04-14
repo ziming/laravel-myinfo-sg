@@ -55,6 +55,6 @@ class MyinfoConnector extends Connector
 
     public function resolveBaseUrl(): string
     {
-        return config('laravel-myinfo-sg-v5.issuer_url');
+        return config('laravel-myinfo-sg-v5.issuer_uri');
     }
 }

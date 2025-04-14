@@ -5,7 +5,7 @@ declare(strict_types=1);
 return [
 
     // Their side
-    'issuer_url' => env('MYINFO_V5_ISSUER_URL', 'https://stg-id.singpass.gov.sg'),
+    'issuer_uri' => env('MYINFO_V5_ISSUER_URI', 'https://stg-id.singpass.gov.sg'),
 
     // Our side
 

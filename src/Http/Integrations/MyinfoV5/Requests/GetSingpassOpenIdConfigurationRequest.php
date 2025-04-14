@@ -20,7 +20,7 @@ class GetSingpassOpenIdConfigurationRequest extends SoloRequest implements Cache
 
     public function resolveEndpoint(): string
     {
-        return config('laravel-myinfo-sg-v5.issuer_url').'/.well-known/openid-configuration';
+        return config('laravel-myinfo-sg-v5.issuer_uri').'/.well-known/openid-configuration';
     }
 
     public function resolveCacheDriver(): Driver

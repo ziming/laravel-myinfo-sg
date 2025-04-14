@@ -146,7 +146,7 @@ class GetUserResponse extends Response
                     config('laravel-myinfo-sg-v5.client_id')
                 ),
                 new IssuerChecker([
-                    config('laravel-myinfo-sg-v5.issuer_url')
+                    config('laravel-myinfo-sg-v5.issuer_uri')
                 ]),
                 new IssuedAtChecker($clock, 2),
             ]
