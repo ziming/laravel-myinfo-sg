@@ -29,10 +29,6 @@ class LaravelMyinfoSgServiceProvider extends PackageServiceProvider
             ->name('laravel-myinfo-sg')
             ->hasConfigFile('laravel-myinfo-sg');
 
-        if (! config('laravel-myinfo-sg.enable_default_myinfo_routes')) {
-            return;
-        };
-
         $package->hasRoute('web');
     }
 

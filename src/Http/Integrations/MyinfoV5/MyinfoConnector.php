@@ -28,10 +28,18 @@ class MyinfoConnector extends Connector
         $response = $getSingpassOpenIdConfigurationRequest->send();
 
         return OAuthConfig::make()
-            ->setClientId(config('laravel-myinfo-sg-v5.client_id'))
-            ->setClientSecret(Str::random()) // doesn't exist in myinfo v5. But need to set for Saloon to not throw error
-            ->setDefaultScopes(config('laravel-myinfo-sg-v5.scope_array'))
-            ->setRedirectUri(config('laravel-myinfo-sg-v5.redirect_uri'))
+            ->setClientId(
+                config('laravel-myinfo-sg-v5.client_id')
+            )
+            ->setClientSecret(
+                Str::random() // // doesn't exist in myinfo v5. But need to set for Saloon to not throw error
+            )
+            ->setDefaultScopes(
+                config('laravel-myinfo-sg-v5.scope_array')
+            )
+            ->setRedirectUri(
+                config('laravel-myinfo-sg-v5.redirect_uri')
+            )
             ->setAuthorizeEndpoint(
                 $response->json('authorization_endpoint'),
             )
