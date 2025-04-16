@@ -35,7 +35,7 @@ class MyinfoConnector extends Connector
                 Str::random() // // doesn't exist in myinfo v5. But need to set for Saloon to not throw error
             )
             ->setDefaultScopes(
-                config('laravel-myinfo-sg-v5.scope_array')
+                config('laravel-myinfo-sg-v5.scopes_array')
             )
             ->setRedirectUri(
                 config('laravel-myinfo-sg-v5.redirect_uri')
@@ -61,14 +61,14 @@ class MyinfoConnector extends Connector
         $state = Str::random(40);
 
         session()->put([
-            config('laravel-myinfo-sg-v5.state_session_name') => $state,
-            config('laravel-myinfo-sg-v5.code_verifier_session_name') => $codeVerifier,
+            config('laravel-myinfo-sg-v5.state_session_key') => $state,
+            config('laravel-myinfo-sg-v5.code_verifier_session_key') => $codeVerifier,
         ]);
 
         if ($redirectUri !== null) {
             $this->oauthConfig->setRedirectUri($redirectUri);
         }
-        
+
         return $this->getAuthorizationUrl(
             state: $state,
             additionalQueryParameters: [

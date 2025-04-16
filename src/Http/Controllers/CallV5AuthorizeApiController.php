@@ -27,8 +27,8 @@ class CallV5AuthorizeApiController extends Controller
         $state = Str::random(40);
 
         session()->put([
-            config('laravel-myinfo-sg-v5.state_session_name') => $state,
-            config('laravel-myinfo-sg-v5.code_verifier_session_name') => $codeVerifier,
+            config('laravel-myinfo-sg-v5.state_session_key') => $state,
+            config('laravel-myinfo-sg-v5.code_verifier_session_key') => $codeVerifier,
         ]);
 
         $authorizationUrl = $myinfoConnector->getAuthorizationUrl(
