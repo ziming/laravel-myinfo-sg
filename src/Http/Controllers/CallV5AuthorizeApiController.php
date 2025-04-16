@@ -25,32 +25,7 @@ class CallV5AuthorizeApiController extends Controller
 
         $myinfoConnector = new MyinfoConnector;
 
-        $codeVerifier = Str::random(128);
-        $encoded = base64_encode(hash('sha256', $codeVerifier, true));
-
-        $codeChallenge = strtr(rtrim($encoded, '='), '+/', '-_');
-
-        $state = Str::random(40);
-
-        session()->put([
-            config('laravel-myinfo-sg-v5.state_session_key') => $state,
-            config('laravel-myinfo-sg-v5.code_verifier_session_key') => $codeVerifier,
-        ]);
-
-        if ($redirectUri !== null) {
-            $myinfoConnector
-                ->oauthConfig()
-                ->setRedirectUri($redirectUri);
-        }
-
-        $authorizationUrl = $myinfoConnector->getAuthorizationUrl(
-            state: $state,
-            additionalQueryParameters: [
-                'nonce' => (string) Str::uuid(),
-                'code_challenge_method' => 'S256',
-                'code_challenge' => $codeChallenge,
-            ]
-        );
+        $authorizationUrl = $myinfoConnector->generateAuthorizationUrl($redirectUri);
 
         if (config('laravel-myinfo-sg-v5.debug_mode')) {
             Log::debug('-- Authorise Call --');
