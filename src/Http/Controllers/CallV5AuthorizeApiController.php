@@ -17,6 +17,12 @@ class CallV5AuthorizeApiController extends Controller
 {
     public function __invoke(Request $request): RedirectResponse
     {
+        $request->validate([
+            'redirect_uri' => ['nullable', 'string', 'url'],
+        ]);
+
+        $redirectUri = $request->input('redirect_uri');
+
         $myinfoConnector = new MyinfoConnector;
 
         $codeVerifier = Str::random(128);
@@ -30,6 +36,12 @@ class CallV5AuthorizeApiController extends Controller
             config('laravel-myinfo-sg-v5.state_session_key') => $state,
             config('laravel-myinfo-sg-v5.code_verifier_session_key') => $codeVerifier,
         ]);
+
+        if ($redirectUri !== null) {
+            $myinfoConnector
+                ->oauthConfig()
+                ->setRedirectUri($redirectUri);
+        }
 
         $authorizationUrl = $myinfoConnector->getAuthorizationUrl(
             state: $state,
