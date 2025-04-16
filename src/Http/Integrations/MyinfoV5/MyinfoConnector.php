@@ -51,6 +51,34 @@ class MyinfoConnector extends Connector
             );
     }
 
+    public function generateAuthorizationUrl(?string $redirectUri = null): string
+    {
+        $codeVerifier = Str::random(128);
+        $encoded = base64_encode(hash('sha256', $codeVerifier, true));
+
+        $codeChallenge = strtr(rtrim($encoded, '='), '+/', '-_');
+
+        $state = Str::random(40);
+
+        session()->put([
+            config('laravel-myinfo-sg-v5.state_session_name') => $state,
+            config('laravel-myinfo-sg-v5.code_verifier_session_name') => $codeVerifier,
+        ]);
+
+        if ($redirectUri !== null) {
+            $this->oauthConfig->setRedirectUri($redirectUri);
+        }
+        
+        return $this->getAuthorizationUrl(
+            state: $state,
+            additionalQueryParameters: [
+                'nonce' => (string) Str::uuid(),
+                'code_challenge_method' => 'S256',
+                'code_challenge' => $codeChallenge,
+            ]
+        );
+    }
+
     protected function resolveAccessTokenRequest(string $code, OAuthConfig $oauthConfig): Request
     {
         return new GetAccessTokenRequest($code, $oauthConfig);
