@@ -66,7 +66,7 @@ class GetAccessTokenRequest extends \Saloon\Http\OAuth2\GetAccessTokenRequest
             'redirect_uri' => $this->oauthConfig->getRedirectUri(),
             'client_assertion' => $clientAssertion,
             'code_verifier' => session(
-                config('laravel-myinfo-sg-v5.code_verifier.session_key')
+                config('laravel-myinfo-sg-v5.code_verifier_session_key')
             ),
         ];
     }

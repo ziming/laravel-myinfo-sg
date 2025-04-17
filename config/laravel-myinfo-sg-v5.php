@@ -17,7 +17,6 @@ return [
     'public_jwks' => env('MYINFO_V5_PUBLIC_JWKS'),
     'private_jwks' => env('MYINFO_V5_PRIVATE_JWKS'),
     'chosen_jwks_sig_kid' => env('MYINFO_V5_CHOSEN_JWKS_SIG_KID'),
-    'chosen_jwks_enc_kid' => env('MYINFO_V5_CHOSEN_JWKS_ENC_KID'),
 
     'enable_default_myinfo_authorization_redirect_route' => false,
     'call_authorization_api_uri' => env('MYINFO_V5_CALL_AUTHORISE_API_URL', '/redirect-to-singpass-myinfo-v5'),
