@@ -19,7 +19,7 @@ return [
     'chosen_jwks_sig_kid' => env('MYINFO_V5_CHOSEN_JWKS_SIG_KID'),
 
     'enable_default_myinfo_authorization_redirect_route' => false,
-    'call_authorization_api_uri' => env('MYINFO_V5_CALL_AUTHORISE_API_URL', '/redirect-to-singpass-myinfo-v5'),
+    'call_authorization_api_uri' => env('MYINFO_V5_CALL_AUTHORISE_API_URI', '/redirect-to-singpass-myinfo-v5'),
     'call_authorization_api_controller' => \Ziming\LaravelMyinfoSg\Http\Controllers\CallV5AuthorizeApiController::class,
     'state_session_key' => env('MYINFO_V5_STATE_SESSION_KEY', 'state'),
     'code_verifier_session_key' => env('MYINFO_V5_CODE_VERIFIER_SESSION_KEY', 'code_verifier'),
