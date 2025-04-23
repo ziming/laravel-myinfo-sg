@@ -66,7 +66,7 @@ class MyinfoConnector extends Connector
         ]);
 
         if ($redirectUri !== null) {
-            $this->oauthConfig->setRedirectUri($redirectUri);
+            $this->oauthConfig()->setRedirectUri($redirectUri);
         }
 
         return $this->getAuthorizationUrl(
