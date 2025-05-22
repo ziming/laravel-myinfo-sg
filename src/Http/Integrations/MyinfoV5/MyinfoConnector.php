@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5;
 
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\Requests\GetAccessTokenRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\Requests\GetSingpassOpenIdConfigurationRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\Requests\GetUserRequest;
@@ -69,7 +71,7 @@ class MyinfoConnector extends Connector
             $this->oauthConfig()->setRedirectUri($redirectUri);
         }
 
-        return $this->getAuthorizationUrl(
+        $authorizationUrl = $this->getAuthorizationUrl(
             state: $state,
             additionalQueryParameters: [
                 'nonce' => (string) Str::uuid(),
@@ -77,6 +79,14 @@ class MyinfoConnector extends Connector
                 'code_challenge' => $codeChallenge,
             ]
         );
+
+        if (config('laravel-myinfo-sg-v5.debug_mode')) {
+            Log::debug('-- Authorise Call --');
+            Log::debug('Server Call Time: '.Carbon::now()->toDayDateTimeString());
+            Log::debug('Web Request URL: '.$authorizationUrl);
+        }
+
+        return $authorizationUrl;
     }
 
     protected function resolveAccessTokenRequest(string $code, OAuthConfig $oauthConfig): Request
