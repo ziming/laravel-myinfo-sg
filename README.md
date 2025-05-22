@@ -8,17 +8,16 @@ time wasting hidden quirks of implementing it in PHP figured out.
 
 <a href="https://api.singpass.gov.sg/library/myinfo/v3/developers/overview" rel="noreferrer nofollow">Official MyInfo Docs</a>
 
-## Will the new Myinfo be supported?
+## Contributing
 
-Yes, it is in my plans, previously I did not support Myinfo v4 as they announced that a new version will come out
+A donation is always welcomed (currently $0), especially if you or your employer makes money with the help of my packages. Which I am aware of a couple.
 
-Recently the new version is out in November 2024 and sites on Myinfo v3 are given until 30 June 2025 to upgrade.
+## Is Myinfo v5 supported?
 
-As usual, my other work & personal life commitments will come 1st but I will still try to get it out before Myinfo v3 expires
+Yes. Although my employer say they won't stop me from releasing it, they are also not happy about it as it could help competitors.
 
-If anyone wants to make a PR before my own attempt, you are welcome to do so too
-
-Hope that helps for those who emailed me.
+So I am not going to provide documentation for now to make it a little harder to figure it out. But it should be easy enough
+for you to view the source code to figure out yourself.
 
 ## Installation
 
@@ -208,7 +207,3 @@ do logging or other stuffs before returning the person data.
 ### Changelog
 
 Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
-
-## Contributing
-
-A donation is always welcomed (currently $0), especially if you or your employer makes money with the help of my packages. Which I am aware of a couple.
