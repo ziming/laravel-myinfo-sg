@@ -14,12 +14,9 @@ A donation is always welcomed (currently $0), especially if you or your employer
 
 ## Is Myinfo v5 supported?
 
-Yes. Although my employer say they won't stop me from releasing it, they are also not happy about it as it could help competitors.
+Yes. Docs for it are not provided for now so you would have to look at the source code to figure out yourself currently.
 
-So I am not going to provide documentation for now to make it a little harder to figure it out. But it should be easy enough
-for you to view the source code to figure out yourself.
-
-## Installation
+## Installation (v3 instructions)
 
 You can install the package via composer:
 
