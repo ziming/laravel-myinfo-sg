@@ -18,6 +18,7 @@ use Ziming\LaravelMyinfoSg\Services\MyinfoSecurityService;
 class LaravelMyinfoSg
 {
     public function __construct(
+        #[\SensitiveParameter]
         private ?string $clientId = null,
         #[\SensitiveParameter]
         private ?string $clientSecret = null,
