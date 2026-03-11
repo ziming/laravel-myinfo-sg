@@ -14,8 +14,6 @@ A donation is always welcomed (currently $0), especially if you or your employer
 
 ## Is Myinfo v5 supported?
 
-Yes. Docs for it are not provided for now so you would have to look at the source code to figure out yourself currently.
-
 ### Generate Authorization URI to Redirect to Singpass Myinfo Login Page
 
 ```php
