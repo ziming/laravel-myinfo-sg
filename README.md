@@ -16,6 +16,54 @@ A donation is always welcomed (currently $0), especially if you or your employer
 
 Yes. Docs for it are not provided for now so you would have to look at the source code to figure out yourself currently.
 
+### Generate Authorization URI to Redirect to Singpass Myinfo Login Page
+
+```php
+$myinfoConnector = new MyinfoConnector;
+
+$authoriseApiUrl = $myinfoConnector->generateAuthorizationUrl();
+
+// If you want to change the redirect uri you can do this
+$authoriseApiUrl = $myinfoConnector->generateAuthorizationUrl('https://www.the-redirect-uri-you-want-to-use.com/callback');
+
+```
+
+### After Singpass Redirect Back to Your Callback URI, Get MyInfo Person Data
+
+```php
+
+$myinfoConnector = new MyinfoConnector;
+
+// If for some reason you need to change your redirect uri again. I cannot remember the use case as I took a very long break from this.
+if (App::isLocal() === false) {
+    $myinfoConnector
+        ->oauthConfig()
+        ->setRedirectUri(
+            action(SomeControllerAction::class)
+        );
+}
+
+$myinfoAuthenticator = $myinfoConnector->getAccessToken(
+    $code,
+    $state,
+    session()->pull(config('laravel-myinfo-sg-v5.state_session_key')),
+);
+
+$personData = $myinfoConnector
+    ->getUser($myinfoAuthenticator)
+    ->json();
+```
+
+### The JWKS Endpoint
+
+Either you make your own controller or you just generate it and paste it in Singpass API Portal.
+
+Maybe in future I provide better support for it but for now I am drowned in work in a very small team. Sorry.
+
+## What about Myinfo v6 with FAPI 2.0?
+
+Not yet sorry, but it is in my plans.
+
 ## Installation (v3 instructions)
 
 You can install the package via composer:
