@@ -27,6 +27,7 @@ class LaravelMyinfoSgServiceProvider extends PackageServiceProvider
     {
         $package
             ->name('laravel-myinfo-sg')
+            ->hasCommands([GenerateJwkSetCommand::class])
             ->hasConfigFile('laravel-myinfo-sg');
 
         $package->hasRoute('web');
