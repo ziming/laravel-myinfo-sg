@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Ziming\LaravelMyinfoSg;
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\ServiceProvider;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Ziming\LaravelMyinfoSg\Console\Commands\GenerateJwkSetCommand;
 
 class LaravelMyinfoSgServiceProvider extends PackageServiceProvider
 {

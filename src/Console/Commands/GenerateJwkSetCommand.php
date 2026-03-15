@@ -2,7 +2,7 @@
 
 declare (strict_types=1);
 
-namespace Ziming\LaravelMyinfoSg;
+namespace Ziming\LaravelMyinfoSg\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -12,6 +12,7 @@ use Jose\Component\KeyManagement\JWKFactory;
 /**
  * @internal
  * Untested, just merely writing it based on initial reading the docs, could be very wrong
+ * Previously I used another tool to generate them
  */
 class GenerateJwkSetCommand extends Command
 {
