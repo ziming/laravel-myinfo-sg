@@ -20,6 +20,13 @@ class MyinfoConnector extends Connector
     use AuthorizationCodeGrant;
 
     /**
+     * Allow absolute OAuth endpoint URLs returned by the Singpass OpenID configuration.
+     * These endpoints are fetched from a trusted source and are not user-controlled.
+     * Required for Saloon v4 compatibility (CVE-2026-33182 opt-in).
+     */
+    public bool $allowBaseUrlOverride = true;
+
+    /**
      * @throws \JsonException
      */
     protected function defaultOauthConfig(): OAuthConfig
@@ -29,7 +36,7 @@ class MyinfoConnector extends Connector
 
         $response = $getSingpassOpenIdConfigurationRequest->send();
 
-        return OAuthConfig::make()
+        $config = OAuthConfig::make()
             ->setClientId(
                 config('laravel-myinfo-sg-v5.client_id')
             )
@@ -51,6 +58,15 @@ class MyinfoConnector extends Connector
             ->setUserEndpoint(
                 $response->json('userinfo_endpoint'),
             );
+
+        // Saloon v4 requires explicit opt-in to allow absolute OAuth endpoint URLs
+        // (CVE-2026-33182 fix). These endpoints come from a trusted Singpass OpenID
+        // configuration and are not user-controlled, so this is safe to enable.
+        if (method_exists($config, 'setAllowBaseUrlOverride')) {
+            $config->setAllowBaseUrlOverride(true);
+        }
+
+        return $config;
     }
 
     public function generateAuthorizationUrl(?string $redirectUri = null): string
