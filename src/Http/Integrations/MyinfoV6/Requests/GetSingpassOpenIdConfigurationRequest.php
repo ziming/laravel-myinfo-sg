@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\Requests;
+namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests;
 
 use Illuminate\Support\Facades\Cache;
 use Saloon\CachePlugin\Contracts\Cacheable;
@@ -20,8 +20,8 @@ class GetSingpassOpenIdConfigurationRequest extends SoloRequest implements Cache
 
     public function resolveEndpoint(): string
     {
-        $issuerUri = rtrim(config('laravel-myinfo-sg-v5.issuer_uri'), '/');
-        return $issuerUri.'/.well-known/openid-configuration';
+        $issuerUri = rtrim(config('laravel-myinfo-sg-v6.issuer_uri'), '/');
+        return $issuerUri.'/fapi/.well-known/openid-configuration';
     }
 
     public function resolveCacheDriver(): Driver

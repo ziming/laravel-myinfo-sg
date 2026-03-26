@@ -22,17 +22,21 @@
         "archtechx/enums": "^1.0",
         "guzzlehttp/guzzle": "^7.0",
         "illuminate/contracts": "^12.0",
-        "saloonphp/cache-plugin": "^3.0",
-        "saloonphp/saloon": "^3.0",
+        "saloonphp/saloon": "^3.0 || ^4.0",
         "spatie/laravel-package-tools": "^1.16.6",
-        "web-token/jwt-framework": "^4.0"
+        "web-token/jwt-framework": "^4.0",
+        "saloonphp/cache-plugin": "^3.1"
     },
     "require-dev": {
         "nunomaduro/collision": "^8.0",
         "orchestra/testbench": "^10.0",
         "pestphp/pest": "^3.0",
         "spatie/laravel-ray": "^1.37.1",
-        "symfony/thanks": "^1.3"
+        "symfony/thanks": "^1.3",
+        "larastan/larastan": "^3.0",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0"
     },
     "autoload": {
         "psr-4": {
@@ -48,7 +52,8 @@
         "sort-packages": true,
         "allow-plugins": {
             "symfony/thanks": true,
-            "pestphp/pest-plugin": true
+            "pestphp/pest-plugin": true,
+            "phpstan/extension-installer": true
         }
     },
     "extra": {
@@ -60,5 +65,8 @@
                 "LaravelMyinfoSg": "Ziming\\LaravelMyinfoSg\\LaravelMyinfoSgFacade"
             }
         }
+    },
+    "scripts": {
+        "analyse": "vendor/bin/phpstan analyse"
     }
 }

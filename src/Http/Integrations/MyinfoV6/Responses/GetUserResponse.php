@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\Responses;
+namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Responses;
 
-use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\Requests\GetSingpassJwksRequest;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassJwksRequest;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassOpenIdConfigurationRequest;
 use Illuminate\Support\Arr;
 use Jose\Component\Checker\AlgorithmChecker;
 use Jose\Component\Checker\AudienceChecker;
 use Jose\Component\Checker\ClaimCheckerManager;
 use Jose\Component\Checker\HeaderCheckerManager;
-use Jose\Component\Checker\ExpirationTimeChecker;
 use Jose\Component\Checker\IssuedAtChecker;
 use Jose\Component\Checker\IssuerChecker;
 use Jose\Component\Core\AlgorithmManager;
@@ -60,9 +60,8 @@ class GetUserResponse extends Response
 
         $kid = $jwe->getSharedProtectedHeaderParameter('kid');
 
-        // must it be private jwks, or can it be public?
         $jwkSet = JWKFactory::createFromJsonObject(
-            config('laravel-myinfo-sg-v5.private_jwks')
+            config('laravel-myinfo-sg-v6.private_jwks')
         );
 
         $jwk = $jwkSet->get($kid);
@@ -95,9 +94,14 @@ class GetUserResponse extends Response
      */
     private function decodeMyinfoJwsPayload(string $jwsToken): array
     {
-        $getSingpassJwksRequest = new GetSingpassJwksRequest;
+        $configRequest = new GetSingpassOpenIdConfigurationRequest;
+        $configResponse = $configRequest->send();
+        $configData = $configResponse->json();
+        $jwksUri = $configData['jwks_uri'];
+        $issuer = self::resolveExpectedIssuer($configData);
 
-        $singpassJwksResponse = $getSingpassJwksRequest->send();
+        $jwksRequest = new GetSingpassJwksRequest($jwksUri);
+        $singpassJwksResponse = $jwksRequest->send();
 
         $singpassPublicJwks = JWKSet::createFromJson(
             $singpassJwksResponse->body()
@@ -144,18 +148,35 @@ class GetUserResponse extends Response
         $claimCheckerManager = new ClaimCheckerManager(
             [
                 new AudienceChecker(
-                    config('laravel-myinfo-sg-v5.client_id')
+                    config('laravel-myinfo-sg-v6.client_id')
                 ),
                 new IssuerChecker([
-                    config('laravel-myinfo-sg-v5.issuer_uri')
+                    $issuer,
                 ]),
                 new IssuedAtChecker($clock, 2),
-                new ExpirationTimeChecker($clock, 2),
+                new \Jose\Component\Checker\ExpirationTimeChecker($clock, 2),
             ]
         );
 
         $claimCheckerManager->check($myinfoPersonPayload);
 
+        // Verify nonce matches the session
+        $sessionNonce = session(config('laravel-myinfo-sg-v6.nonce_session_key'));
+        $responseNonce = $myinfoPersonPayload['nonce'] ?? null;
+
+        if ($sessionNonce !== $responseNonce) {
+            throw new \RuntimeException('Nonce mismatch: session nonce does not match response nonce');
+        }
+
         return $myinfoPersonPayload;
+    }
+
+    private static function resolveExpectedIssuer(array $configData): string
+    {
+        if (isset($configData['issuer']) && is_string($configData['issuer']) && $configData['issuer'] !== '') {
+            return $configData['issuer'];
+        }
+
+        return rtrim(config('laravel-myinfo-sg-v6.issuer_uri'), '/').'/fapi';
     }
 }

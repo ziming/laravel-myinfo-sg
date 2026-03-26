@@ -58,6 +58,7 @@ class GetAccessTokenRequest extends \Saloon\Http\OAuth2\GetAccessTokenRequest
 
         $clientAssertion = $compactSerializer->serialize($jws);
 
+        // @phpstan-ignore return.type
         return [
             'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
             'grant_type' => 'authorization_code',

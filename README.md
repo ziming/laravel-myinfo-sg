@@ -60,7 +60,167 @@ Maybe in future I provide better support for it but for now I am drowned in work
 
 ## What about Myinfo v6 with FAPI 2.0?
 
-Not yet sorry, but it is in my plans.
+Yes. The package currently supports the Myinfo v6 / FAPI 2.0 flow.
+
+The v6 connector handles these parts for you:
+
+- OpenID discovery
+- PAR (Pushed Authorization Request)
+- PKCE
+- DPoP
+- client assertion signing
+- userinfo JWE decryption
+- userinfo JWS signature verification
+- nonce verification on the userinfo response
+
+The v6 flow is session-backed. Your authorization redirect route and callback route should run behind Laravel's `web` middleware so the package can keep:
+
+- `state`
+- `nonce`
+- `code_verifier`
+- the session-scoped DPoP key
+- the effective redirect URI
+
+### Publish Config
+
+```bash
+php artisan vendor:publish --provider="Ziming\LaravelMyinfoSg\LaravelMyinfoSgServiceProvider" --tag="myinfo-sg-config"
+```
+
+### Example `.env` For V6
+
+```.dotenv
+MYINFO_V6_ISSUER_URI=https://stg-id.singpass.gov.sg
+
+MYINFO_V6_CLIENT_ID=your-client-id
+MYINFO_V6_REDIRECT_URI=https://your-app.test/callback/myinfo-v6
+MYINFO_V6_SCOPES=openid
+
+# Full private JWKS used for client assertion signing and decrypting the userinfo response
+MYINFO_V6_PRIVATE_JWKS='{"keys":[...]}'
+
+# Matching public JWKS exposed to Singpass
+MYINFO_V6_PUBLIC_JWKS='{"keys":[...]}'
+
+# Select the signing key from the private JWKS used for client assertions
+MYINFO_V6_CHOSEN_JWKS_SIG_KID=sig-your-key-id
+
+# Optional package routes
+MYINFO_V6_ENABLE_DEFAULT_AUTHORIZATION_REDIRECT_ROUTE=false
+MYINFO_V6_CALL_AUTHORIZATION_API_URI=/redirect-to-singpass-v6
+
+MYINFO_V6_ENABLE_DEFAULT_PUBLIC_JWKS_ENDPOINT_ROUTE=false
+MYINFO_V6_PUBLIC_JWKS_URI=/sp/v6/jwks
+
+MYINFO_V6_DEBUG_MODE=false
+```
+
+### Redirect The User To Singpass
+
+If you enable the default authorization redirect route, you may point your button or form action at:
+
+- `route('myinfo-v6.singpass')`
+
+That route uses `Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV6\CallAuthorizationApiController` internally.
+
+If you prefer to do it yourself, use the connector directly:
+
+```php
+<?php
+
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoConnector;
+
+$myinfoConnector = new MyinfoConnector;
+
+return redirect()->to(
+    $myinfoConnector->generateAuthorizationUrl()
+);
+```
+
+If you need to override the redirect URI for this request only:
+
+```php
+<?php
+
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoConnector;
+
+$myinfoConnector = new MyinfoConnector;
+
+return redirect()->to(
+    $myinfoConnector->generateAuthorizationUrl(
+        'https://your-app.test/callback/myinfo-v6'
+    )
+);
+```
+
+The package will automatically reuse that same redirect URI during the token exchange.
+
+### Handle The Callback
+
+You still need to define your own callback route and validate `state` before exchanging the authorization code.
+
+```php
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoConnector;
+
+Route::get('/callback/myinfo-v6', function (Request $request) {
+    $state = $request->string('state')->toString();
+    $expectedState = session()->pull(
+        config('laravel-myinfo-sg-v6.state_session_key')
+    );
+
+    abort_if($state === '' || $state !== $expectedState, 403, 'Invalid state');
+
+    $code = $request->string('code')->toString();
+
+    $myinfoConnector = new MyinfoConnector;
+
+    $tokenResponse = $myinfoConnector->getAccessToken($code);
+
+    $personData = $myinfoConnector
+        ->getUser($tokenResponse['access_token'])
+        ->json();
+
+    return response()->json($personData);
+})->middleware('web');
+```
+
+`getUser(...)->json()` returns the decrypted and verified Myinfo payload.
+
+### Public JWKS Endpoint
+
+If you enable the default public JWKS route, the package will expose:
+
+- `route('myinfo-v6.public-jwks')`
+
+That route uses `Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV6\PublicJwksController` and returns the value from `MYINFO_V6_PUBLIC_JWKS`.
+
+If you prefer to register the routes yourself:
+
+```php
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV6\CallAuthorizationApiController;
+use Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV6\PublicJwksController;
+
+Route::post('/redirect-to-singpass-v6', CallAuthorizationApiController::class)
+    ->name('myinfo-v6.singpass')
+    ->middleware('web');
+
+Route::get('/sp/v6/jwks', PublicJwksController::class)
+    ->name('myinfo-v6.public-jwks');
+```
+
+### Notes
+
+- `MYINFO_V6_PRIVATE_JWKS` should be the full private JWKS.
+- `MYINFO_V6_PUBLIC_JWKS` should be the matching public JWKS registered with Singpass.
+- `MYINFO_V6_CHOSEN_JWKS_SIG_KID` should point at the signing key used for client assertions.
+- The package generates a fresh ephemeral DPoP key per auth session automatically. You do not configure the DPoP key in `.env`.
 
 ## Installation (v3 instructions)
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\Requests;
+namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests;
 
 use Illuminate\Support\Facades\Cache;
 use Saloon\CachePlugin\Contracts\Cacheable;
@@ -12,16 +12,19 @@ use Saloon\CachePlugin\Traits\HasCaching;
 use Saloon\Enums\Method;
 use Saloon\Http\SoloRequest;
 
-class GetSingpassOpenIdConfigurationRequest extends SoloRequest implements Cacheable
+class GetSingpassJwksRequest extends SoloRequest implements Cacheable
 {
     use HasCaching;
 
     protected Method $method = Method::GET;
 
+    public function __construct(private string $jwksUri)
+    {
+    }
+
     public function resolveEndpoint(): string
     {
-        $issuerUri = rtrim(config('laravel-myinfo-sg-v5.issuer_uri'), '/');
-        return $issuerUri.'/.well-known/openid-configuration';
+        return $this->jwksUri;
     }
 
     public function resolveCacheDriver(): Driver

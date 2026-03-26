@@ -23,7 +23,7 @@ final class MyinfoValueFetcher
 
     public function isNotEmpty(): bool
     {
-        return is_array($this->myinfoData);
+        return $this->myinfoData !== [];
     }
 
     public function uinfin(string $key = 'value'): ?string
