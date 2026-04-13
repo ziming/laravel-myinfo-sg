@@ -44,17 +44,13 @@ class GenerateJwkSetCommand extends Command
 
         $jwkSet = new JWKSet([$sigJwk, $encJwk]);
 
-        $jwksArray = $jwkSet->all();
-
-        $jwks = json_encode(['keys' => $jwksArray], JSON_PRETTY_PRINT);
-
         $this->line('Pretty Printed Json');
-        $this->info($jwks);
+        $this->info(json_encode($jwkSet, JSON_PRETTY_PRINT));
 
         $this->line('--------');
 
         $this->line('Non Pretty Printed Json, If you prefer to have it in your env file for example');
-        $this->info(json_encode($jwksArray));
+        $this->info(json_encode($jwkSet));
 
         return self::SUCCESS;
     }
