@@ -12,7 +12,7 @@ time wasting hidden quirks of implementing it in PHP figured out.
 
 A donation is always welcomed (currently $0), especially if you or your employer makes money with the help of my packages. Which I am aware of a couple.
 
-## What about Myinfo v6 with FAPI 2.0?
+## What about Myinfo with FAPI 2.0?
 
 Not yet sorry, but it is in my plans.
 
