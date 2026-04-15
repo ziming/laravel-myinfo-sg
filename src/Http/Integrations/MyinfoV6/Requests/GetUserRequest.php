@@ -7,10 +7,11 @@ namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests;
 use Jose\Component\Core\JWK;
 use Saloon\Enums\Method;
 use Saloon\Http\Request;
+use Saloon\Http\SoloRequest;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\DPoPProofGenerator;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Responses\GetUserResponse;
 
-class GetUserRequest extends Request
+class GetUserRequest extends SoloRequest
 {
     protected Method $method = Method::GET;
 

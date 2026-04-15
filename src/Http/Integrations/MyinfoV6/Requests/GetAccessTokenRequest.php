@@ -8,14 +8,19 @@ use Carbon\CarbonImmutable;
 use Jose\Component\Core\JWK;
 use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\Serializer\CompactSerializer;
+use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
 use Saloon\Http\Request;
+use Saloon\Http\SoloRequest;
+use Saloon\Traits\Body\HasFormBody;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\ClientAssertionSigningKeyResolver;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\DPoPProofGenerator;
 use Illuminate\Support\Str;
 
-class GetAccessTokenRequest extends Request
+class GetAccessTokenRequest extends SoloRequest implements HasBody
 {
+    use HasFormBody;
+
     protected Method $method = Method::POST;
 
     public function __construct(
@@ -48,7 +53,6 @@ class GetAccessTokenRequest extends Request
 
         return [
             'DPoP' => $dpopProof,
-            'Content-Type' => 'application/x-www-form-urlencoded',
         ];
     }
 

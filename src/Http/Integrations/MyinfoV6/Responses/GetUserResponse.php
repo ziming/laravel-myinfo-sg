@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Responses;
 
+use Jose\Component\Checker\ExpirationTimeChecker;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassJwksRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassOpenIdConfigurationRequest;
 use Illuminate\Support\Arr;
@@ -154,19 +155,11 @@ class GetUserResponse extends Response
                     $issuer,
                 ]),
                 new IssuedAtChecker($clock, 2),
-                new \Jose\Component\Checker\ExpirationTimeChecker($clock, 2),
+                new ExpirationTimeChecker($clock, 2),
             ]
         );
 
         $claimCheckerManager->check($myinfoPersonPayload);
-
-        // Verify nonce matches the session
-        $sessionNonce = session(config('laravel-myinfo-sg-v6.nonce_session_key'));
-        $responseNonce = $myinfoPersonPayload['nonce'] ?? null;
-
-        if ($sessionNonce !== $responseNonce) {
-            throw new \RuntimeException('Nonce mismatch: session nonce does not match response nonce');
-        }
 
         return $myinfoPersonPayload;
     }

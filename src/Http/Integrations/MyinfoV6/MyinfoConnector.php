@@ -105,7 +105,7 @@ class MyinfoConnector extends Connector
             $dpopPrivateJwk,
             $dpopPublicJwk
         );
-        $response = $this->send($getAccessTokenRequest);
+        $response = $getAccessTokenRequest->send();
 
         return $response->json();
     }
