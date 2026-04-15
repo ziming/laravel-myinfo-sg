@@ -8,17 +8,21 @@ use Carbon\CarbonImmutable;
 use Jose\Component\Core\JWK;
 use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\Serializer\CompactSerializer;
+use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
 use Saloon\Http\Connector;
 use Saloon\Http\SoloRequest;
+use Saloon\Traits\Body\HasFormBody;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoConnector;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\ClientAssertionSigningKeyResolver;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\DPoPProofGenerator;
 use Illuminate\Support\Str;
 
-class PushedAuthorizationRequest extends SoloRequest
+class PushedAuthorizationRequest extends SoloRequest implements HasBody
 {
     protected Method $method = Method::POST;
+
+    use HasFormBody;
 
     public function __construct(
         private string $parEndpoint,
@@ -56,7 +60,6 @@ class PushedAuthorizationRequest extends SoloRequest
 
         return [
             'DPoP' => $dpopProof,
-            'Content-Type' => 'application/x-www-form-urlencoded',
         ];
     }
 
