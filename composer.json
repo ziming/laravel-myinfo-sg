@@ -25,7 +25,7 @@
         "saloonphp/cache-plugin": "^3.0",
         "saloonphp/saloon": "^3.0|^4.0",
         "spatie/laravel-package-tools": "^1.16.6",
-        "web-token/jwt-framework": "^4.0"
+        "web-token/jwt-framework": "^4.1.7"
     },
     "require-dev": {
         "nunomaduro/collision": "^8.0",
