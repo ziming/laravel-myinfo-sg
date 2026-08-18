@@ -20,7 +20,7 @@
         "ext-json": "*",
         "ext-openssl": "*",
         "archtechx/enums": "^1.0",
-        "guzzlehttp/guzzle": "^7.0",
+        "guzzlehttp/guzzle": "^7.15.3",
         "illuminate/contracts": "^12.0|^13.0",
         "saloonphp/cache-plugin": "^3.0",
         "saloonphp/saloon": "^3.0|^4.0",
