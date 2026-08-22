@@ -451,22 +451,30 @@ final class MyinfoValueFetcher
 
     public function cpfHousingWithdrawalsRowAccruedInterestAmt(int $index): ?float
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.accruedinterestamt.value") ?: null;
+        $amount = Arr::get($this->cpfHousingWithdrawals(), "{$index}.accruedinterestamt.value");
+
+        return is_numeric($amount) ? (float) $amount : null;
     }
 
     public function cpfHousingWithdrawalsRowMonthlyInstalmentAmt(int $index): ?float
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.monthlyinstalmentamt.value") ?: null;
+        $amount = Arr::get($this->cpfHousingWithdrawals(), "{$index}.monthlyinstalmentamt.value");
+
+        return is_numeric($amount) ? (float) $amount : null;
     }
 
     public function cpfHousingWithdrawalsRowPrincipalWithdrawalAmt(int $index): ?float
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.principalwithdrawalamt.value") ?: null;
+        $amount = Arr::get($this->cpfHousingWithdrawals(), "{$index}.principalwithdrawalamt.value");
+
+        return is_numeric($amount) ? (float) $amount : null;
     }
 
     public function cpfHousingWithdrawalsRowTotalAmountOfCpfAllowedForProperty(int $index): ?float
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.totalamountofcpfallowedforproperty.value") ?: null;
+        $amount = Arr::get($this->cpfHousingWithdrawals(), "{$index}.totalamountofcpfallowedforproperty.value");
+
+        return is_numeric($amount) ? (float) $amount : null;
     }
 
     public function childrenBirthRecords(): array
