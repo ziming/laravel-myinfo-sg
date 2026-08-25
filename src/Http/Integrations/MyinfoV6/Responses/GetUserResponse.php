@@ -45,10 +45,10 @@ class GetUserResponse extends Response
         $jweToken = $this->body();
 
         $algorithmManager = new AlgorithmManager([
-            new A256GCM,
-            new ECDHESA128KW,
-            new ECDHESA192KW,
-            new ECDHESA256KW,
+            new A256GCM, // userinfo_encryption_enc_values_supported
+            new ECDHESA128KW, // userinfo_encryption_alg_values_supported
+            new ECDHESA192KW, // userinfo_encryption_alg_values_supported
+            new ECDHESA256KW, // userinfo_encryption_alg_values_supported
         ]);
 
         $jweSerializerManager = new JWESerializerManager([
