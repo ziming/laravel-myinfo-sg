@@ -12,6 +12,7 @@ use Jose\Component\KeyManagement\JWKFactory;
 use JsonException;
 use RuntimeException;
 use Throwable;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\SingpassAlgorithmProfile;
 
 class GenerateJwkSetCommand extends Command
 {
@@ -26,24 +27,6 @@ class GenerateJwkSetCommand extends Command
     private const string DEFAULT_ENCRYPTION_ALGORITHM = 'ECDH-ES+A128KW';
 
     private const string DEFAULT_ENCRYPTION_CURVE = 'P-256';
-
-    private const array SIGNING_ALGORITHMS = [
-        'ES256' => 'P-256',
-        'ES384' => 'P-384',
-        'ES512' => 'P-521',
-    ];
-
-    private const array ENCRYPTION_ALGORITHMS = [
-        'ECDH-ES+A128KW',
-        'ECDH-ES+A192KW',
-        'ECDH-ES+A256KW',
-    ];
-
-    private const array ENCRYPTION_CURVES = [
-        'P-256',
-        'P-384',
-        'P-521',
-    ];
 
     protected $signature = 'myinfo:generate-jwks
         {--keys=both : Keys to generate: both, signing, or encryption}
@@ -76,20 +59,24 @@ class GenerateJwkSetCommand extends Command
             return self::INVALID;
         }
 
-        if ($this->includesSigningKey($keySelection) && ! array_key_exists($signingAlgorithm, self::SIGNING_ALGORITHMS)) {
-            $this->error('The --signing-alg option must be one of: '.implode(', ', array_keys(self::SIGNING_ALGORITHMS)).'.');
+        $signingAlgorithms = SingpassAlgorithmProfile::clientAssertionSigningAlgorithms();
+        $encryptionAlgorithms = SingpassAlgorithmProfile::jweKeyWrappingAlgorithms();
+        $encryptionCurves = SingpassAlgorithmProfile::encryptionKeyCurves();
+
+        if ($this->includesSigningKey($keySelection) && ! array_key_exists($signingAlgorithm, $signingAlgorithms)) {
+            $this->error('The --signing-alg option must be one of: '.implode(', ', array_keys($signingAlgorithms)).'.');
 
             return self::INVALID;
         }
 
-        if ($this->includesEncryptionKey($keySelection) && ! in_array($encryptionAlgorithm, self::ENCRYPTION_ALGORITHMS, true)) {
-            $this->error('The --encryption-alg option must be one of: '.implode(', ', self::ENCRYPTION_ALGORITHMS).'.');
+        if ($this->includesEncryptionKey($keySelection) && ! in_array($encryptionAlgorithm, $encryptionAlgorithms, true)) {
+            $this->error('The --encryption-alg option must be one of: '.implode(', ', $encryptionAlgorithms).'.');
 
             return self::INVALID;
         }
 
-        if ($this->includesEncryptionKey($keySelection) && ! in_array($encryptionCurve, self::ENCRYPTION_CURVES, true)) {
-            $this->error('The --encryption-curve option must be one of: '.implode(', ', self::ENCRYPTION_CURVES).'.');
+        if ($this->includesEncryptionKey($keySelection) && ! in_array($encryptionCurve, $encryptionCurves, true)) {
+            $this->error('The --encryption-curve option must be one of: '.implode(', ', $encryptionCurves).'.');
 
             return self::INVALID;
         }
@@ -237,7 +224,7 @@ class GenerateJwkSetCommand extends Command
     private function generateSigningKey(string $algorithm): JWK
     {
         return $this->withKeyId(
-            JWKFactory::createECKey(self::SIGNING_ALGORITHMS[$algorithm], [
+            JWKFactory::createECKey(SingpassAlgorithmProfile::clientAssertionCurve($algorithm), [
                 'alg' => $algorithm,
                 'use' => 'sig',
             ]),
@@ -269,23 +256,24 @@ class GenerateJwkSetCommand extends Command
         $this->info('Configure Singpass JWKS algorithms');
 
         if ($this->includesSigningKey($keySelection)) {
+            $signingAlgorithms = SingpassAlgorithmProfile::clientAssertionSigningAlgorithms();
             $signingAlgorithm = (string) $this->choice(
                 'Choose the client-assertion signing algorithm',
-                array_keys(self::SIGNING_ALGORITHMS),
+                array_keys($signingAlgorithms),
                 $signingAlgorithm
             );
-            $this->line('Signing curve: '.self::SIGNING_ALGORITHMS[$signingAlgorithm].' (selected by '.$signingAlgorithm.')');
+            $this->line('Signing curve: '.SingpassAlgorithmProfile::clientAssertionCurve($signingAlgorithm).' (selected by '.$signingAlgorithm.')');
         }
 
         if ($this->includesEncryptionKey($keySelection)) {
             $encryptionAlgorithm = (string) $this->choice(
                 'Choose the JWE key-encryption algorithm',
-                self::ENCRYPTION_ALGORITHMS,
+                SingpassAlgorithmProfile::jweKeyWrappingAlgorithms(),
                 $encryptionAlgorithm
             );
             $encryptionCurve = (string) $this->choice(
                 'Choose the encryption-key curve',
-                self::ENCRYPTION_CURVES,
+                SingpassAlgorithmProfile::encryptionKeyCurves(),
                 $encryptionCurve
             );
         }
@@ -294,7 +282,7 @@ class GenerateJwkSetCommand extends Command
         $this->info('Selected key configuration');
 
         if ($this->includesSigningKey($keySelection)) {
-            $this->line("Signing: {$signingAlgorithm} / ".self::SIGNING_ALGORITHMS[$signingAlgorithm]);
+            $this->line("Signing: {$signingAlgorithm} / ".SingpassAlgorithmProfile::clientAssertionCurve($signingAlgorithm));
         }
 
         if ($this->includesEncryptionKey($keySelection)) {

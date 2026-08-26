@@ -6,6 +6,7 @@ namespace Ziming\LaravelMyinfoSg\Tests\Unit\MyinfoV6;
 
 use Jose\Component\Core\JWK;
 use Jose\Component\KeyManagement\JWKFactory;
+use RuntimeException;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\PushedAuthorizationRequest;
 use Ziming\LaravelMyinfoSg\Tests\TestCase;
 
@@ -74,6 +75,39 @@ class PushedAuthorizationRequestTest extends TestCase
         $this->assertArrayHasKey('jti', $clientAssertionPayload);
         $this->assertIsInt($clientAssertionPayload['iat']);
         $this->assertIsInt($clientAssertionPayload['exp']);
+    }
+
+    public function test_pushed_authorization_request_rejects_a_mismatched_signing_curve(): void
+    {
+        $mismatchedKey = new JWK([
+            ...JWKFactory::createECKey('P-256', [
+                'use' => 'sig',
+                'kid' => 'mismatched-signing-key',
+            ])->all(),
+            'alg' => 'ES384',
+        ]);
+
+        config()->set('laravel-myinfo-sg-v6.chosen_jwks_sig_kid', 'mismatched-signing-key');
+        config()->set('laravel-myinfo-sg-v6.private_jwks', json_encode([
+            'keys' => [$mismatchedKey->jsonSerialize()],
+        ], JSON_THROW_ON_ERROR));
+
+        $request = new PushedAuthorizationRequest(
+            'https://stg-id.singpass.gov.sg/fapi/par',
+            'https://stg-id.singpass.gov.sg',
+            $this->dpopPrivateJwk,
+            $this->dpopPublicJwk,
+            'test-state',
+            'test-nonce',
+            'test-code-challenge',
+            'https://example.com/overridden-callback'
+        );
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('[crv]');
+        $this->expectExceptionMessage('[mismatched-signing-key]');
+
+        $request->defaultBody();
     }
 
     /**

@@ -92,39 +92,38 @@ class GetAccessTokenRequestTest extends TestCase
 
     public function test_access_token_request_uses_the_configured_signing_kid_and_algorithm(): void
     {
-        $es256Jwk = JWKFactory::createECKey('P-256', [
-            'alg' => 'ES256',
-            'use' => 'sig',
-            'kid' => 'sig-es256',
-        ]);
-        $es384Jwk = JWKFactory::createECKey('P-384', [
-            'alg' => 'ES384',
-            'use' => 'sig',
-            'kid' => 'sig-es384',
-        ]);
+        foreach ([
+            'ES256' => 'P-256',
+            'ES384' => 'P-384',
+            'ES512' => 'P-521',
+        ] as $algorithm => $curve) {
+            $kid = 'sig-'.strtolower($algorithm);
+            $signingJwk = JWKFactory::createECKey($curve, [
+                'alg' => $algorithm,
+                'use' => 'sig',
+                'kid' => $kid,
+            ]);
 
-        config()->set('laravel-myinfo-sg-v6.chosen_jwks_sig_kid', 'sig-es384');
-        config()->set('laravel-myinfo-sg-v6.private_jwks', json_encode([
-            'keys' => [
-                $es256Jwk->jsonSerialize(),
-                $es384Jwk->jsonSerialize(),
-            ],
-        ], JSON_THROW_ON_ERROR));
+            config()->set('laravel-myinfo-sg-v6.chosen_jwks_sig_kid', $kid);
+            config()->set('laravel-myinfo-sg-v6.private_jwks', json_encode([
+                'keys' => [$signingJwk->jsonSerialize()],
+            ], JSON_THROW_ON_ERROR));
 
-        $request = new GetAccessTokenRequest(
-            'https://stg-id.singpass.gov.sg/fapi/token',
-            'test-auth-code',
-            'https://stg-id.singpass.gov.sg',
-            'https://example.com/overridden-callback',
-            $this->dpopPrivateJwk,
-            $this->dpopPublicJwk
-        );
+            $request = new GetAccessTokenRequest(
+                'https://stg-id.singpass.gov.sg/fapi/token',
+                'test-auth-code',
+                'https://stg-id.singpass.gov.sg',
+                'https://example.com/overridden-callback',
+                $this->dpopPrivateJwk,
+                $this->dpopPublicJwk
+            );
 
-        $body = $request->defaultBody();
-        [$clientAssertionHeader] = $this->decodeCompactJwt($body['client_assertion']);
+            $body = $request->defaultBody();
+            [$clientAssertionHeader] = $this->decodeCompactJwt($body['client_assertion']);
 
-        $this->assertSame('ES384', $clientAssertionHeader['alg']);
-        $this->assertSame('sig-es384', $clientAssertionHeader['kid']);
+            $this->assertSame($algorithm, $clientAssertionHeader['alg']);
+            $this->assertSame($kid, $clientAssertionHeader['kid']);
+        }
     }
 
     /**

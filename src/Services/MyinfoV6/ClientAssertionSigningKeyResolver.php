@@ -7,7 +7,6 @@ namespace Ziming\LaravelMyinfoSg\Services\MyinfoV6;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Core\JWK;
 use Jose\Component\Core\JWKSet;
-use Jose\Component\KeyManagement\JWKFactory;
 use Jose\Component\Signature\Algorithm\ES256;
 use Jose\Component\Signature\Algorithm\ES384;
 use Jose\Component\Signature\Algorithm\ES512;
@@ -19,19 +18,11 @@ class ClientAssertionSigningKeyResolver
      */
     public static function resolve(): array
     {
-        $privateJwks = JWKFactory::createFromJsonObject(
+        $privateJwks = (new JwkSetValidator)->validatePrivateJwks(
             config('laravel-myinfo-sg-v6.private_jwks')
         );
 
-        if (! $privateJwks instanceof JWKSet) {
-            throw new \RuntimeException('Expected a JWKS for v6 private_jwks');
-        }
-
         $signingJwk = self::resolveSigningJwk($privateJwks);
-
-        if (! $signingJwk->has('kid')) {
-            throw new \RuntimeException('Signing key must declare kid');
-        }
 
         $alg = self::resolveAlgorithm($signingJwk);
 
@@ -96,6 +87,8 @@ class ClientAssertionSigningKeyResolver
 
     private static function buildAlgorithmManager(string $alg): AlgorithmManager
     {
+        SingpassAlgorithmProfile::clientAssertionCurve($alg);
+
         return match ($alg) {
             'ES256' => new AlgorithmManager([new ES256]),
             'ES384' => new AlgorithmManager([new ES384]),

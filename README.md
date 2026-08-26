@@ -281,6 +281,14 @@ If you enable the default public JWKS route, the package will expose:
 
 That route uses `Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV6\PublicJwksController` and returns the value from `MYINFO_V6_PUBLIC_JWKS`.
 
+The endpoint validates this configuration before building a response. It fails closed if the public JWKS
+contains private `d` material, duplicate key IDs, unsupported algorithms or curves, or does not contain at
+least one signing key and one encryption key. It never repairs a private JWKS by silently removing `d`.
+
+If private key material may already have been served from this endpoint, rotate every affected signing or
+encryption key and update the registered public JWKS. Correcting `MYINFO_V6_PUBLIC_JWKS` alone is not
+sufficient because the exposed private key must be treated as compromised.
+
 If you prefer to register the routes yourself:
 
 ```php

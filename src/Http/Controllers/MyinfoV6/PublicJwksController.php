@@ -7,12 +7,14 @@ namespace Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV6;
 use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use RuntimeException;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetValidator;
 
 class PublicJwksController extends Controller
 {
+    public function __construct(private readonly JwkSetValidator $jwkSetValidator) {}
+
     /**
-     * @throws \JsonException
+     * @throws \RuntimeException
      */
     public function __invoke(ResponseFactory $responseFactory): JsonResponse
     {
@@ -23,24 +25,12 @@ class PublicJwksController extends Controller
 
     /**
      * @return array<string, mixed>
-     * @throws \JsonException
+     * @throws \RuntimeException
      */
     private function resolvePublicJwksPayload(): array
     {
-        $publicJwks = config('laravel-myinfo-sg-v6.public_jwks');
-
-        if (is_string($publicJwks) && $publicJwks !== '') {
-            $decoded = json_decode($publicJwks, true, 512, JSON_THROW_ON_ERROR);
-        } elseif (is_array($publicJwks)) {
-            $decoded = $publicJwks;
-        } else {
-            throw new RuntimeException('The laravel-myinfo-sg-v6.public_jwks config must be a JSON string or array.');
-        }
-
-        if (array_is_list($decoded)) {
-            return ['keys' => $decoded];
-        }
-
-        return $decoded;
+        return $this->jwkSetValidator->validatePublicJwks(
+            config('laravel-myinfo-sg-v6.public_jwks')
+        );
     }
 }
