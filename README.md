@@ -69,9 +69,11 @@ The v6 connector handles these parts for you:
 - PKCE
 - DPoP
 - client assertion signing
+- ID token JWE decryption
+- ID token JWS signature verification
+- ID token issuer, audience, expiry, issued-at, and nonce verification
 - userinfo JWE decryption
 - userinfo JWS signature verification
-- nonce verification on the userinfo response
 
 The v6 flow is session-backed. Your authorization redirect route and callback route should run behind Laravel's `web` middleware so the package can keep:
 
@@ -96,7 +98,7 @@ MYINFO_V6_CLIENT_ID=your-client-id
 MYINFO_V6_REDIRECT_URI=https://your-app.test/callback/myinfo-v6
 MYINFO_V6_SCOPES=openid
 
-# Full private JWKS used for client assertion signing and decrypting the userinfo response
+# Full private JWKS used for client assertion signing and decrypting ID token/userinfo responses
 MYINFO_V6_PRIVATE_JWKS='{"keys":[...]}'
 
 # Matching public JWKS exposed to Singpass
@@ -242,9 +244,10 @@ PKCE verifier, redirect URI, nonce, issuer, or DPoP key.
 
 ### Handle The Callback
 
-You still need to define your own callback route. Use `validateAuthorizationCallback()` as the secure
-callback boundary: it validates and consumes the transaction-scoped `state`, compares callback `iss`
-exactly, handles provider errors without exposing their descriptions, and requires a non-empty code.
+You still need to define your own callback route. Use `completeAuthorization()` as the secure completion
+boundary. It validates and consumes the transaction-scoped `state`, compares callback `iss` exactly,
+exchanges the code with that transaction's PKCE and DPoP context, validates the token response, decrypts
+and verifies the ID token, and verifies its issuer, audience, expiry, issued-at time, nonce, and subject.
 
 ```php
 <?php
@@ -255,26 +258,26 @@ use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoConnector;
 
 Route::get('/callback/myinfo-v6', function (Request $request) {
     $myinfoConnector = new MyinfoConnector;
-    $callback = $myinfoConnector->validateAuthorizationCallback($request);
-
-    // This response is raw and unverified until its ID token has been
-    // decrypted and validated by your application.
-    $rawUnverifiedTokenResponse = $myinfoConnector
-        ->getAccessTokenFromValidatedCallback($callback);
+    $tokenSet = $myinfoConnector->completeAuthorization($request);
 
     return response()->json([
-        'message' => 'Validate the ID token before continuing the flow.',
-    ], 501);
+        'subject' => $tokenSet->subject(),
+    ]);
 })->middleware('web');
 ```
 
-Do not return `$rawUnverifiedTokenResponse`, trust its claims, or use its access token until ID-token
-decryption and validation have succeeded. A future high-level API will perform that verification; until
-then, applications must supply it before treating authorization as complete.
+The returned `VerifiedTokenSet` exposes the access token through `accessToken()`, the verified ID-token
+claims through `claims()`, the trusted subject through `subject()`, and the exact `DPoP` token type through
+`tokenType()`. Its access token and transaction-bound private DPoP key are excluded from debug and JSON
+output, and the object cannot be serialized.
 
-`getAccessToken(string $code)` remains available as a low-level compatibility method. It does not accept
-the callback request and therefore cannot validate callback `state` or `iss`; do not use it as the primary
-callback path in new integrations.
+Time-based ID-token checks use a fixed two-second clock-skew allowance. Beyond that allowance, the current
+time must be before `exp`, and `iat` must not be in the future.
+
+`getAccessToken(string $code)` and `getAccessTokenFromValidatedCallback()` remain available as low-level
+compatibility methods. They return raw, unverified token-endpoint data. The string-only method also cannot
+validate callback `state` or `iss`. Do not treat either result as authenticated or use either method as the
+primary callback path in new integrations.
 
 ### Public JWKS Endpoint
 

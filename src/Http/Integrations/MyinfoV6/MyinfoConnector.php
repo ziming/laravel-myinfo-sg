@@ -11,18 +11,27 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Jose\Component\Core\JWK;
+use Jose\Component\Core\JWKSet;
 use Jose\Component\KeyManagement\JWKFactory;
 use RuntimeException;
 use Saloon\Http\Connector;
+use Saloon\Http\Response;
+use Throwable;
 use Ziming\LaravelMyinfoSg\Data\MyinfoV6\AuthorizationTransaction;
 use Ziming\LaravelMyinfoSg\Data\MyinfoV6\ValidatedAuthorizationCallback;
+use Ziming\LaravelMyinfoSg\Data\MyinfoV6\VerifiedTokenSet;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\AuthorizationResponseException;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidIdTokenException;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetAccessTokenRequest;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassJwksRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassOpenIdConfigurationRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetUserRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\PushedAuthorizationRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Responses\GetUserResponse;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\AuthorizationCallbackValidator;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\AuthorizationTransactionStore;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\IdTokenProcessor;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetValidator;
 
 class MyinfoConnector extends Connector
 {
@@ -96,8 +105,7 @@ class MyinfoConnector extends Connector
     /**
      * Low-level token exchange that does not validate callback state or issuer.
      *
-     * Prefer validateAuthorizationCallback() followed by
-     * getAccessTokenFromValidatedCallback() for new integrations.
+     * Prefer completeAuthorization() for new integrations.
      *
      * @throws \JsonException
      */
@@ -165,6 +173,61 @@ class MyinfoConnector extends Connector
         return (new AuthorizationCallbackValidator(
             new AuthorizationTransactionStore($request->session()),
         ))->validate($request);
+    }
+
+    /**
+     * Complete the callback, token exchange, and ID-token verification boundary.
+     */
+    public function completeAuthorization(Request $request): VerifiedTokenSet
+    {
+        $callback = $this->validateAuthorizationCallback($request);
+        $metadata = $this->getValidatedDiscoveryMetadata();
+
+        if (! hash_equals($callback->transaction->issuer, $metadata['issuer'])) {
+            throw new RuntimeException('The discovery issuer changed during authorization.');
+        }
+
+        $clientId = config('laravel-myinfo-sg-v6.client_id');
+
+        if (! is_string($clientId) || $clientId === '') {
+            throw new RuntimeException('MyInfo V6 client ID is not configured.');
+        }
+
+        $dpopPrivateJwk = $callback->transaction->dpopPrivateJwk();
+        $tokenResponse = $this->sendAccessTokenResponse(
+            $metadata['token_endpoint'],
+            $callback->code,
+            $callback->transaction->issuer,
+            $callback->transaction->redirectUri,
+            $callback->transaction->codeVerifier,
+            $dpopPrivateJwk,
+        );
+        $tokenData = $this->validateTokenResponse($tokenResponse);
+        $singpassPublicJwks = $this->fetchSingpassPublicJwks($metadata['jwks_uri']);
+
+        try {
+            $privateDecryptionJwks = (new JwkSetValidator)->validatePrivateJwks(
+                config('laravel-myinfo-sg-v6.private_jwks'),
+            );
+        } catch (Throwable) {
+            throw new InvalidIdTokenException('The ID token decryption keys are invalid.');
+        }
+
+        $claims = (new IdTokenProcessor)->process(
+            $tokenData['id_token'],
+            $privateDecryptionJwks,
+            $singpassPublicJwks,
+            $callback->transaction->issuer,
+            $clientId,
+            $callback->transaction->nonce,
+        );
+
+        return new VerifiedTokenSet(
+            $tokenData['access_token'],
+            $claims,
+            $tokenData['token_type'],
+            $dpopPrivateJwk,
+        );
     }
 
     /**
@@ -336,6 +399,26 @@ class MyinfoConnector extends Connector
         string $codeVerifier,
         JWK $dpopPrivateJwk,
     ): array {
+        $data = $this->sendAccessTokenResponse(
+            $tokenEndpoint,
+            $code,
+            $issuer,
+            $redirectUri,
+            $codeVerifier,
+            $dpopPrivateJwk,
+        )->json();
+
+        return $data;
+    }
+
+    private function sendAccessTokenResponse(
+        string $tokenEndpoint,
+        string $code,
+        string $issuer,
+        string $redirectUri,
+        string $codeVerifier,
+        JWK $dpopPrivateJwk,
+    ): Response {
         $request = new GetAccessTokenRequest(
             $tokenEndpoint,
             $code,
@@ -346,6 +429,108 @@ class MyinfoConnector extends Connector
             $dpopPrivateJwk->toPublic(),
         );
 
-        return $request->send()->json();
+        return $request->send();
+    }
+
+    /**
+     * @return array{access_token: string, id_token: string, token_type: string}
+     */
+    private function validateTokenResponse(Response $response): array
+    {
+        $data = $this->decodeJsonObject($response->body());
+
+        if (! $response->successful()) {
+            throw new AuthorizationResponseException(
+                $this->safeTokenErrorCode($data['error'] ?? null, 'token_endpoint_error'),
+            );
+        }
+
+        if ($data === null) {
+            throw new AuthorizationResponseException('invalid_token_response');
+        }
+
+        if (array_key_exists('error', $data)) {
+            throw new AuthorizationResponseException(
+                $this->safeTokenErrorCode($data['error'], 'token_endpoint_error'),
+            );
+        }
+
+        $accessToken = $data['access_token'] ?? null;
+        $idToken = $data['id_token'] ?? null;
+        $tokenType = $data['token_type'] ?? null;
+
+        if (
+            ! is_string($accessToken)
+            || trim($accessToken) === ''
+            || ! is_string($idToken)
+            || trim($idToken) === ''
+            || $tokenType !== 'DPoP'
+        ) {
+            throw new AuthorizationResponseException('invalid_token_response');
+        }
+
+        return [
+            'access_token' => $accessToken,
+            'id_token' => $idToken,
+            'token_type' => $tokenType,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeJsonObject(string $json): ?array
+    {
+        try {
+            $object = json_decode($json, false, 512, JSON_THROW_ON_ERROR);
+            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            return null;
+        }
+
+        return is_object($object) && is_array($data) ? $data : null;
+    }
+
+    private function safeTokenErrorCode(mixed $error, string $fallback): string
+    {
+        if (! is_string($error) || preg_match('/\A[A-Za-z0-9._-]{1,128}\z/D', $error) !== 1) {
+            return $fallback;
+        }
+
+        return $error;
+    }
+
+    private function fetchSingpassPublicJwks(string $jwksUri): JWKSet
+    {
+        $response = (new GetSingpassJwksRequest($jwksUri))->send();
+
+        if (! $response->successful()) {
+            throw new InvalidIdTokenException('The Singpass signing keys could not be loaded.');
+        }
+
+        try {
+            $data = $this->decodeJsonObject($response->body());
+            $keys = $data['keys'] ?? null;
+
+            if (! is_array($keys) || ! array_is_list($keys) || $keys === []) {
+                throw new RuntimeException;
+            }
+
+            $seenKeyIds = [];
+
+            foreach ($keys as $key) {
+                $kid = is_array($key) ? ($key['kid'] ?? null) : null;
+
+                if (! is_string($kid) || $kid === '' || isset($seenKeyIds[$kid])) {
+                    throw new RuntimeException;
+                }
+
+                $seenKeyIds[$kid] = true;
+            }
+
+            return JWKSet::createFromKeyData($data);
+        } catch (Throwable) {
+            throw new InvalidIdTokenException('The Singpass signing keys are invalid.');
+        }
     }
 }
