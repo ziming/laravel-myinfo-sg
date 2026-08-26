@@ -115,6 +115,89 @@ MYINFO_V6_PUBLIC_JWKS_URI=/sp/v6/jwks
 MYINFO_V6_DEBUG_MODE=false
 ```
 
+### Generate JWKS
+
+Generate the initial signing and encryption key pairs with:
+
+```bash
+php artisan myinfo:generate-jwks \
+    --private-output=storage/app/private/myinfo/private.jwks.json \
+    --public-output=storage/app/myinfo/public.jwks.json
+```
+
+Add `--configure` for a guided, step-by-step choice of the signing algorithm, encryption algorithm, and
+encryption curve:
+
+```bash
+php artisan myinfo:generate-jwks --configure \
+    --private-output=storage/app/private/myinfo/private.jwks.json \
+    --public-output=storage/app/myinfo/public.jwks.json
+```
+
+For non-interactive scripts, pass the choices directly:
+
+```bash
+php artisan myinfo:generate-jwks \
+    --signing-alg=ES384 \
+    --encryption-alg=ECDH-ES+A192KW \
+    --encryption-curve=P-384 \
+    --private-output=storage/app/private/myinfo/private.jwks.json \
+    --public-output=storage/app/myinfo/public.jwks.json
+```
+
+Supported signing combinations:
+
+| Signing algorithm | Curve |
+| --- | --- |
+| `ES256` (default) | `P-256` |
+| `ES384` | `P-384` |
+| `ES512` | `P-521` |
+
+Supported encryption algorithms are `ECDH-ES+A128KW` (default), `ECDH-ES+A192KW`, and
+`ECDH-ES+A256KW`. Each can be used with `P-256` (default), `P-384`, or `P-521`, as permitted by the
+[Singpass JWKS requirements](https://docs.developer.singpass.gov.sg/docs/technical-specifications/technical-concepts/json-web-key-sets-jwks).
+
+When working directly in this package repository, replace `php artisan` with `vendor/bin/testbench`.
+
+The private file is created with owner-only permissions (`0600`). Keep it outside the public web root and
+store its contents in `MYINFO_V6_PRIVATE_JWKS` or an appropriate secrets manager. The public file contains
+matching public keys without the private `d` property and can be used for `MYINFO_V6_PUBLIC_JWKS` or the
+public JWKS endpoint. The command also prints the generated `MYINFO_V6_CHOSEN_JWKS_SIG_KID` value.
+
+If `--public-output` is omitted, the public JWKS is printed as a ready-to-copy environment assignment.
+Private key material is never printed unless you explicitly use `--show-private`; only use that option in a
+trusted local terminal and never in CI or captured logs. Existing files are not overwritten unless `--force`
+is supplied.
+
+#### Rotate JWKS
+
+Generate only the key needed for a rotation:
+
+```bash
+php artisan myinfo:generate-jwks --keys=signing \
+    --private-output=storage/app/private/myinfo/new-signing.jwks.json
+
+php artisan myinfo:generate-jwks --keys=encryption \
+    --private-output=storage/app/private/myinfo/new-encryption.jwks.json
+```
+
+These commands produce JWKS fragments. Do not register a fragment by itself because Singpass requires the
+registered JWKS to contain at least one signing key and one encryption key.
+
+For signing-key rotation:
+
+1. Add the new public signing key alongside the existing public signing key.
+2. Wait at least one hour for the Singpass JWKS cache to expire.
+3. Add the new private signing key and change `MYINFO_V6_CHOSEN_JWKS_SIG_KID` to its `kid`.
+4. Remove the old public and private signing keys.
+
+For encryption-key rotation:
+
+1. Add the new private encryption key while retaining the old private encryption key so either `kid` can be decrypted.
+2. Replace the old public encryption key with the new public encryption key.
+3. Wait at least one hour for the Singpass JWKS cache to expire.
+4. Remove the old private encryption key.
+
 ### Redirect The User To Singpass
 
 If you enable the default authorization redirect route, you may point your button or form action at:
