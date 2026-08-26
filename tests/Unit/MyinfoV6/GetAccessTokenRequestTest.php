@@ -81,7 +81,13 @@ class GetAccessTokenRequestTest extends TestCase
         $headers = $request->defaultHeaders();
 
         $this->assertArrayHasKey('DPoP', $headers);
-        $this->assertSame('application/x-www-form-urlencoded', $headers['Content-Type']);
+
+        $pendingRequest = $request->createPendingRequest();
+
+        $this->assertSame(
+            'application/x-www-form-urlencoded',
+            $pendingRequest->headers()->get('Content-Type')
+        );
     }
 
     public function test_access_token_request_uses_the_configured_signing_kid_and_algorithm(): void
