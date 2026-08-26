@@ -36,16 +36,16 @@ class GetAccessTokenRequestTest extends TestCase
             'keys' => [$this->clientAssertionSigningJwk->jsonSerialize()],
         ], JSON_THROW_ON_ERROR));
 
-        session()->put(config('laravel-myinfo-sg-v6.code_verifier_session_key'), 'test-code-verifier');
     }
 
-    public function test_access_token_request_body_uses_the_passed_redirect_uri(): void
+    public function test_access_token_request_body_uses_the_explicit_transaction_values(): void
     {
         $request = new GetAccessTokenRequest(
             'https://stg-id.singpass.gov.sg/fapi/token',
             'test-auth-code',
             'https://stg-id.singpass.gov.sg',
             'https://example.com/overridden-callback',
+            'explicit-code-verifier',
             $this->dpopPrivateJwk,
             $this->dpopPublicJwk
         );
@@ -56,7 +56,7 @@ class GetAccessTokenRequestTest extends TestCase
         $this->assertSame('test-auth-code', $body['code']);
         $this->assertSame('https://example.com/overridden-callback', $body['redirect_uri']);
         $this->assertSame('test-client-id', $body['client_id']);
-        $this->assertSame('test-code-verifier', $body['code_verifier']);
+        $this->assertSame('explicit-code-verifier', $body['code_verifier']);
         $this->assertArrayHasKey('client_assertion', $body);
 
         [, $clientAssertionPayload] = $this->decodeCompactJwt($body['client_assertion']);
@@ -74,6 +74,7 @@ class GetAccessTokenRequestTest extends TestCase
             'test-auth-code',
             'https://stg-id.singpass.gov.sg',
             'https://example.com/overridden-callback',
+            'explicit-code-verifier',
             $this->dpopPrivateJwk,
             $this->dpopPublicJwk
         );
@@ -114,6 +115,7 @@ class GetAccessTokenRequestTest extends TestCase
                 'test-auth-code',
                 'https://stg-id.singpass.gov.sg',
                 'https://example.com/overridden-callback',
+                'explicit-code-verifier',
                 $this->dpopPrivateJwk,
                 $this->dpopPublicJwk
             );

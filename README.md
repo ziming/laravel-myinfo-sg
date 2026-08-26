@@ -236,11 +236,15 @@ return redirect()->to(
 );
 ```
 
-The package will automatically reuse that same redirect URI during the token exchange.
+The package stores each authorization attempt as a separate, session-bound transaction for 10 minutes.
+That means starting another authorization in a second tab does not overwrite the first tab's state,
+PKCE verifier, redirect URI, nonce, issuer, or DPoP key.
 
 ### Handle The Callback
 
-You still need to define your own callback route and validate `state` before exchanging the authorization code.
+You still need to define your own callback route. Use `validateAuthorizationCallback()` as the secure
+callback boundary: it validates and consumes the transaction-scoped `state`, compares callback `iss`
+exactly, handles provider errors without exposing their descriptions, and requires a non-empty code.
 
 ```php
 <?php
@@ -250,28 +254,27 @@ use Illuminate\Support\Facades\Route;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoConnector;
 
 Route::get('/callback/myinfo-v6', function (Request $request) {
-    $state = $request->string('state')->toString();
-    $expectedState = session()->pull(
-        config('laravel-myinfo-sg-v6.state_session_key')
-    );
-
-    abort_if($state === '' || $state !== $expectedState, 403, 'Invalid state');
-
-    $code = $request->string('code')->toString();
-
     $myinfoConnector = new MyinfoConnector;
+    $callback = $myinfoConnector->validateAuthorizationCallback($request);
 
-    $tokenResponse = $myinfoConnector->getAccessToken($code);
+    // This response is raw and unverified until its ID token has been
+    // decrypted and validated by your application.
+    $rawUnverifiedTokenResponse = $myinfoConnector
+        ->getAccessTokenFromValidatedCallback($callback);
 
-    $personData = $myinfoConnector
-        ->getUser($tokenResponse['access_token'])
-        ->json();
-
-    return response()->json($personData);
+    return response()->json([
+        'message' => 'Validate the ID token before continuing the flow.',
+    ], 501);
 })->middleware('web');
 ```
 
-`getUser(...)->json()` returns the decrypted and verified Myinfo payload.
+Do not return `$rawUnverifiedTokenResponse`, trust its claims, or use its access token until ID-token
+decryption and validation have succeeded. A future high-level API will perform that verification; until
+then, applications must supply it before treating authorization as complete.
+
+`getAccessToken(string $code)` remains available as a low-level compatibility method. It does not accept
+the callback request and therefore cannot validate callback `state` or `iss`; do not use it as the primary
+callback path in new integrations.
 
 ### Public JWKS Endpoint
 
@@ -312,6 +315,8 @@ Route::get('/sp/v6/jwks', PublicJwksController::class)
 - `MYINFO_V6_PUBLIC_JWKS` should be the matching public JWKS registered with Singpass.
 - `MYINFO_V6_CHOSEN_JWKS_SIG_KID` should point at the signing key used for client assertions.
 - The package generates a fresh ephemeral DPoP key per auth session automatically. You do not configure the DPoP key in `.env`.
+- Authorization transactions are stored in the user's Laravel session under `transaction_session_key`
+  and expire after `transaction_ttl_seconds` (600 seconds by default).
 
 ## Installation (v3 instructions)
 

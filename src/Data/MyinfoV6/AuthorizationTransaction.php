@@ -1,0 +1,137 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ziming\LaravelMyinfoSg\Data\MyinfoV6;
+
+use InvalidArgumentException;
+use Jose\Component\Core\JWK;
+use Jose\Component\KeyManagement\JWKFactory;
+use RuntimeException;
+use SensitiveParameter;
+use Throwable;
+
+final readonly class AuthorizationTransaction
+{
+    private string $dpopPrivateJwkJson;
+
+    public function __construct(
+        public string $state,
+        public string $nonce,
+        public string $codeVerifier,
+        public string $redirectUri,
+        public string $issuer,
+        #[SensitiveParameter] string $dpopPrivateJwkJson,
+        public int $createdAt,
+    ) {
+        if ($state === '' || $nonce === '' || $codeVerifier === '' || $redirectUri === '' || $issuer === '') {
+            throw new InvalidArgumentException('Authorization transaction fields must not be empty.');
+        }
+
+        if ($createdAt < 0) {
+            throw new InvalidArgumentException('Authorization transaction creation time is invalid.');
+        }
+
+        $this->dpopPrivateJwkJson = self::normalizePrivateJwk($dpopPrivateJwkJson);
+    }
+
+    public function dpopPrivateJwk(): JWK
+    {
+        $jwk = JWKFactory::createFromJsonObject($this->dpopPrivateJwkJson);
+
+        if (! $jwk instanceof JWK) {
+            throw new RuntimeException('Authorization transaction DPoP key is invalid.');
+        }
+
+        return $jwk;
+    }
+
+    /**
+     * @return array{
+     *     state: string,
+     *     nonce: string,
+     *     code_verifier: string,
+     *     redirect_uri: string,
+     *     issuer: string,
+     *     dpop_private_jwk: string,
+     *     created_at: int
+     * }
+     */
+    public function toSessionRecord(): array
+    {
+        return [
+            'state' => $this->state,
+            'nonce' => $this->nonce,
+            'code_verifier' => $this->codeVerifier,
+            'redirect_uri' => $this->redirectUri,
+            'issuer' => $this->issuer,
+            'dpop_private_jwk' => $this->dpopPrivateJwkJson,
+            'created_at' => $this->createdAt,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $record
+     */
+    public static function fromSessionRecord(array $record): self
+    {
+        $state = $record['state'] ?? null;
+        $nonce = $record['nonce'] ?? null;
+        $codeVerifier = $record['code_verifier'] ?? null;
+        $redirectUri = $record['redirect_uri'] ?? null;
+        $issuer = $record['issuer'] ?? null;
+        $dpopPrivateJwk = $record['dpop_private_jwk'] ?? null;
+        $createdAt = $record['created_at'] ?? null;
+
+        if (
+            ! is_string($state)
+            || ! is_string($nonce)
+            || ! is_string($codeVerifier)
+            || ! is_string($redirectUri)
+            || ! is_string($issuer)
+            || ! is_string($dpopPrivateJwk)
+            || ! is_int($createdAt)
+        ) {
+            throw new InvalidArgumentException('Authorization transaction record is invalid.');
+        }
+
+        return new self(
+            $state,
+            $nonce,
+            $codeVerifier,
+            $redirectUri,
+            $issuer,
+            $dpopPrivateJwk,
+            $createdAt,
+        );
+    }
+
+    private static function normalizePrivateJwk(#[SensitiveParameter] string $jwkJson): string
+    {
+        try {
+            $jwk = JWKFactory::createFromJsonObject($jwkJson);
+
+            if (
+                ! $jwk instanceof JWK
+                || $jwk->get('kty') !== 'EC'
+                || ! in_array($jwk->get('crv'), ['P-256', 'P-384', 'P-521'], true)
+                || ! self::hasNonEmptyString($jwk, 'x')
+                || ! self::hasNonEmptyString($jwk, 'y')
+                || ! self::hasNonEmptyString($jwk, 'd')
+            ) {
+                throw new InvalidArgumentException;
+            }
+
+            return json_encode($jwk, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            throw new InvalidArgumentException('Authorization transaction contains an invalid DPoP private key.');
+        }
+    }
+
+    private static function hasNonEmptyString(JWK $jwk, string $parameter): bool
+    {
+        return $jwk->has($parameter)
+            && is_string($jwk->get($parameter))
+            && $jwk->get($parameter) !== '';
+    }
+}

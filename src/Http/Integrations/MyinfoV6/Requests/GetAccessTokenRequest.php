@@ -28,6 +28,7 @@ class GetAccessTokenRequest extends SoloRequest implements HasBody
         private string $code,
         private string $issuer,
         private string $redirectUri,
+        private string $codeVerifier,
         private JWK $dpopPrivateSigningJwk,
         private JWK $dpopPublicSigningJwk
     )
@@ -93,7 +94,7 @@ class GetAccessTokenRequest extends SoloRequest implements HasBody
             'code' => $this->code,
             'redirect_uri' => $this->redirectUri,
             'client_id' => $clientId,
-            'code_verifier' => session(config('laravel-myinfo-sg-v6.code_verifier_session_key')),
+            'code_verifier' => $this->codeVerifier,
             'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
             'client_assertion' => $clientAssertion,
         ];

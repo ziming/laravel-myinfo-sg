@@ -4,17 +4,25 @@ declare(strict_types=1);
 
 namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6;
 
+use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Session\Session;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Jose\Component\Core\JWK;
 use Jose\Component\KeyManagement\JWKFactory;
+use RuntimeException;
+use Saloon\Http\Connector;
+use Ziming\LaravelMyinfoSg\Data\MyinfoV6\AuthorizationTransaction;
+use Ziming\LaravelMyinfoSg\Data\MyinfoV6\ValidatedAuthorizationCallback;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetAccessTokenRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassOpenIdConfigurationRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetUserRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\PushedAuthorizationRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Responses\GetUserResponse;
-use Illuminate\Support\Str;
-use Saloon\Http\Connector;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\AuthorizationCallbackValidator;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\AuthorizationTransactionStore;
 
 class MyinfoConnector extends Connector
 {
@@ -23,49 +31,54 @@ class MyinfoConnector extends Connector
      */
     public function generateAuthorizationUrl(?string $redirectUri = null): string
     {
+        $metadata = $this->getValidatedDiscoveryMetadata();
         $effectiveRedirectUri = $redirectUri ?? config('laravel-myinfo-sg-v6.redirect_uri');
+
+        if (! is_string($effectiveRedirectUri) || $effectiveRedirectUri === '') {
+            throw new RuntimeException('MyInfo V6 redirect URI is not configured.');
+        }
+
         $codeVerifier = Str::random(128);
         $encoded = base64_encode(hash('sha256', $codeVerifier, true));
         $codeChallenge = strtr(rtrim($encoded, '='), '+/', '-_');
 
         $state = Str::random(40);
         $nonce = (string) Str::uuid();
-        [$dpopPrivateJwk, $dpopPublicJwk] = $this->createAndStoreDpopKeyPair();
-
-        session()->put([
-            config('laravel-myinfo-sg-v6.state_session_key') => $state,
-            config('laravel-myinfo-sg-v6.nonce_session_key') => $nonce,
-            config('laravel-myinfo-sg-v6.code_verifier_session_key') => $codeVerifier,
-            config('laravel-myinfo-sg-v6.redirect_uri_session_key') => $effectiveRedirectUri,
-        ]);
-
-        // Fetch OIDC configuration
-        $getSingpassOpenIdConfigurationRequest = new GetSingpassOpenIdConfigurationRequest;
-        $configResponse = $getSingpassOpenIdConfigurationRequest->send();
-        $configData = $configResponse->json();
-
-        $parEndpoint = $configData['pushed_authorization_request_endpoint'];
-        $authorizationEndpoint = $configData['authorization_endpoint'];
-        $issuer = $configData['issuer'];
+        [$dpopPrivateJwk, $dpopPublicJwk] = $this->createDpopKeyPair();
+        $transaction = new AuthorizationTransaction(
+            $state,
+            $nonce,
+            $codeVerifier,
+            $effectiveRedirectUri,
+            $metadata['issuer'],
+            json_encode($dpopPrivateJwk, JSON_THROW_ON_ERROR),
+            CarbonImmutable::now()->timestamp,
+        );
 
         // Call PAR endpoint
         $parRequest = new PushedAuthorizationRequest(
-            $parEndpoint,
-            $issuer,
+            $metadata['pushed_authorization_request_endpoint'],
+            $transaction->issuer,
             $dpopPrivateJwk,
             $dpopPublicJwk,
-            $state,
-            $nonce,
+            $transaction->state,
+            $transaction->nonce,
             $codeChallenge,
-            $effectiveRedirectUri
+            $transaction->redirectUri,
         );
         $parResponse = $parRequest->send();
         $parData = $parResponse->json();
+        $requestUri = $parData['request_uri'] ?? null;
 
-        $requestUri = $parData['request_uri'];
+        if (! is_string($requestUri) || $requestUri === '') {
+            throw new RuntimeException('The pushed authorization response did not contain a request URI.');
+        }
+
+        $this->transactionStore()->put($transaction);
+        session()->put(config('laravel-myinfo-sg-v6.state_session_key'), $transaction->state);
 
         // Build the authorization URL with only client_id and request_uri
-        $authorizationUrl = $authorizationEndpoint . '?' . http_build_query([
+        $authorizationUrl = $metadata['authorization_endpoint'].'?'.http_build_query([
             'client_id' => config('laravel-myinfo-sg-v6.client_id'),
             'request_uri' => $requestUri,
         ]);
@@ -81,33 +94,105 @@ class MyinfoConnector extends Connector
     }
 
     /**
+     * Low-level token exchange that does not validate callback state or issuer.
+     *
+     * Prefer validateAuthorizationCallback() followed by
+     * getAccessTokenFromValidatedCallback() for new integrations.
+     *
      * @throws \JsonException
      */
     public function getAccessToken(string $code): array
     {
-        $getSingpassOpenIdConfigurationRequest = new GetSingpassOpenIdConfigurationRequest;
-        $configResponse = $getSingpassOpenIdConfigurationRequest->send();
-        $configData = $configResponse->json();
+        $metadata = $this->getValidatedDiscoveryMetadata();
+        $latestState = session()->pull(config('laravel-myinfo-sg-v6.state_session_key'));
 
-        $tokenEndpoint = $configData['token_endpoint'];
-        $issuer = $configData['issuer'];
+        if (is_string($latestState) && $latestState !== '') {
+            $transaction = $this->transactionStore()->pull($latestState);
+
+            if ($transaction !== null) {
+                $dpopPrivateJwk = $transaction->dpopPrivateJwk();
+                $response = $this->sendAccessTokenRequest(
+                    $metadata['token_endpoint'],
+                    $code,
+                    $transaction->issuer,
+                    $transaction->redirectUri,
+                    $transaction->codeVerifier,
+                    $dpopPrivateJwk,
+                );
+
+                // Transfer ownership to the legacy UserInfo path only after the
+                // transaction record has been consumed successfully.
+                session()->put(
+                    config('laravel-myinfo-sg-v6.dpop_private_jwk_session_key'),
+                    json_encode($dpopPrivateJwk, JSON_THROW_ON_ERROR),
+                );
+
+                return $response;
+            }
+        }
+
         [$dpopPrivateJwk, $dpopPublicJwk] = $this->getStoredDpopKeyPair();
         $redirectUri = session(
             config('laravel-myinfo-sg-v6.redirect_uri_session_key'),
             config('laravel-myinfo-sg-v6.redirect_uri')
         );
+        $codeVerifier = session(config('laravel-myinfo-sg-v6.code_verifier_session_key'));
+
+        if (! is_string($redirectUri) || $redirectUri === '') {
+            throw new RuntimeException('No redirect URI found for low-level token exchange.');
+        }
+
+        if (! is_string($codeVerifier) || $codeVerifier === '') {
+            throw new RuntimeException('No PKCE code verifier found for low-level token exchange.');
+        }
 
         $getAccessTokenRequest = new GetAccessTokenRequest(
-            $tokenEndpoint,
+            $metadata['token_endpoint'],
             $code,
-            $issuer,
+            $metadata['issuer'],
             $redirectUri,
+            $codeVerifier,
             $dpopPrivateJwk,
-            $dpopPublicJwk
+            $dpopPublicJwk,
         );
         $response = $getAccessTokenRequest->send();
 
         return $response->json();
+    }
+
+    public function validateAuthorizationCallback(Request $request): ValidatedAuthorizationCallback
+    {
+        return (new AuthorizationCallbackValidator(
+            new AuthorizationTransactionStore($request->session()),
+        ))->validate($request);
+    }
+
+    /**
+     * Exchange a previously validated callback for a raw, unverified token response.
+     *
+     * ID-token validation is required before the authorization flow is complete.
+     *
+     * @return array<string, mixed>
+     * @throws \JsonException
+     */
+    public function getAccessTokenFromValidatedCallback(ValidatedAuthorizationCallback $callback): array
+    {
+        $metadata = $this->getValidatedDiscoveryMetadata();
+
+        if (! hash_equals($callback->transaction->issuer, $metadata['issuer'])) {
+            throw new RuntimeException('The discovery issuer changed during authorization.');
+        }
+
+        $dpopPrivateJwk = $callback->transaction->dpopPrivateJwk();
+
+        return $this->sendAccessTokenRequest(
+            $metadata['token_endpoint'],
+            $callback->code,
+            $callback->transaction->issuer,
+            $callback->transaction->redirectUri,
+            $callback->transaction->codeVerifier,
+            $dpopPrivateJwk,
+        );
     }
 
     /**
@@ -115,15 +200,11 @@ class MyinfoConnector extends Connector
      */
     public function getUser(string $accessToken): GetUserResponse
     {
-        $getSingpassOpenIdConfigurationRequest = new GetSingpassOpenIdConfigurationRequest;
-        $configResponse = $getSingpassOpenIdConfigurationRequest->send();
-        $configData = $configResponse->json();
-
-        $userInfoEndpoint = $configData['userinfo_endpoint'];
+        $metadata = $this->getValidatedDiscoveryMetadata();
         [$dpopPrivateJwk, $dpopPublicJwk] = $this->getStoredDpopKeyPair();
 
         $getUserRequest = new GetUserRequest(
-            $userInfoEndpoint,
+            $metadata['userinfo_endpoint'],
             $accessToken,
             $dpopPrivateJwk,
             $dpopPublicJwk
@@ -142,19 +223,13 @@ class MyinfoConnector extends Connector
 
     /**
      * @return array{JWK, JWK}
-     * @throws \JsonException
      */
-    private function createAndStoreDpopKeyPair(): array
+    private function createDpopKeyPair(): array
     {
         $privateJwk = JWKFactory::createECKey('P-256', [
             'alg' => 'ES256',
             'use' => 'sig',
         ]);
-
-        session()->put(
-            config('laravel-myinfo-sg-v6.dpop_private_jwk_session_key'),
-            json_encode($privateJwk, JSON_THROW_ON_ERROR)
-        );
 
         return [$privateJwk, $privateJwk->toPublic()];
     }
@@ -179,5 +254,98 @@ class MyinfoConnector extends Connector
         }
 
         return [$privateJwk, $privateJwk->toPublic()];
+    }
+
+    /**
+     * @return array{
+     *     issuer: string,
+     *     authorization_endpoint: string,
+     *     pushed_authorization_request_endpoint: string,
+     *     token_endpoint: string,
+     *     userinfo_endpoint: string,
+     *     jwks_uri: string
+     * }
+     */
+    private function getValidatedDiscoveryMetadata(): array
+    {
+        $response = (new GetSingpassOpenIdConfigurationRequest)->send();
+        $metadata = $response->json();
+
+        $issuerUri = config('laravel-myinfo-sg-v6.issuer_uri');
+
+        if (! is_string($issuerUri) || $issuerUri === '') {
+            throw new RuntimeException('MyInfo V6 issuer URI is not configured.');
+        }
+
+        $expectedIssuer = rtrim($issuerUri, '/').'/fapi';
+        $issuer = $this->requiredMetadataUrl($metadata, 'issuer');
+
+        if (! hash_equals($expectedIssuer, $issuer)) {
+            throw new RuntimeException('Singpass discovery issuer does not match the configured issuer.');
+        }
+
+        return [
+            'issuer' => $issuer,
+            'authorization_endpoint' => $this->requiredMetadataUrl($metadata, 'authorization_endpoint'),
+            'pushed_authorization_request_endpoint' => $this->requiredMetadataUrl($metadata, 'pushed_authorization_request_endpoint'),
+            'token_endpoint' => $this->requiredMetadataUrl($metadata, 'token_endpoint'),
+            'userinfo_endpoint' => $this->requiredMetadataUrl($metadata, 'userinfo_endpoint'),
+            'jwks_uri' => $this->requiredMetadataUrl($metadata, 'jwks_uri'),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     */
+    private function requiredMetadataUrl(array $metadata, string $key): string
+    {
+        $value = $metadata[$key] ?? null;
+
+        if (
+            ! is_string($value)
+            || $value === ''
+            || filter_var($value, FILTER_VALIDATE_URL) === false
+            || parse_url($value, PHP_URL_SCHEME) !== 'https'
+        ) {
+            throw new RuntimeException("Singpass discovery metadata [{$key}] must be a valid HTTPS URL.");
+        }
+
+        return $value;
+    }
+
+    private function transactionStore(): AuthorizationTransactionStore
+    {
+        $session = session()->driver();
+
+        if (! $session instanceof Session) {
+            throw new RuntimeException('A Laravel session is required for MyInfo V6 authorization.');
+        }
+
+        return new AuthorizationTransactionStore($session);
+    }
+
+    /**
+     * @return array<string, mixed>
+     * @throws \JsonException
+     */
+    private function sendAccessTokenRequest(
+        string $tokenEndpoint,
+        string $code,
+        string $issuer,
+        string $redirectUri,
+        string $codeVerifier,
+        JWK $dpopPrivateJwk,
+    ): array {
+        $request = new GetAccessTokenRequest(
+            $tokenEndpoint,
+            $code,
+            $issuer,
+            $redirectUri,
+            $codeVerifier,
+            $dpopPrivateJwk,
+            $dpopPrivateJwk->toPublic(),
+        );
+
+        return $request->send()->json();
     }
 }

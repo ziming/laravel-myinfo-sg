@@ -22,6 +22,9 @@ return [
     'redirect_uri_session_key' => env('MYINFO_V6_REDIRECT_URI_SESSION_KEY', 'myinfo_v6_redirect_uri'),
     'dpop_private_jwk_session_key' => env('MYINFO_V6_DPOP_PRIVATE_JWK_SESSION_KEY', 'myinfo_v6_dpop_private_jwk'),
 
+    'transaction_session_key' => 'myinfo_v6_transactions',
+    'transaction_ttl_seconds' => 600,
+
     'enable_default_myinfo_authorization_redirect_route' => env('MYINFO_V6_ENABLE_DEFAULT_AUTHORIZATION_REDIRECT_ROUTE', false),
     'call_authorization_api_uri' => env('MYINFO_V6_CALL_AUTHORIZATION_API_URI', '/redirect-to-singpass-v6'),
     'call_authorization_api_controller' => env('MYINFO_V6_CALL_AUTHORIZATION_API_CONTROLLER', \Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV6\CallAuthorizationApiController::class),
