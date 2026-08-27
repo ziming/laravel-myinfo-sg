@@ -10,9 +10,9 @@ use Illuminate\Support\Arr;
  * This class is for my own use for now, I will not care about making breaking changes.
  * You have been warned.
  */
-final class MyinfoValueFetcher
+class MyinfoValueFetcher
 {
-    private function __construct(private array $myinfoData)
+    protected function __construct(private array $myinfoData)
     {
     }
 
