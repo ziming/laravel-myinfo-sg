@@ -111,6 +111,12 @@ MYINFO_V6_CHOSEN_JWKS_SIG_KID=sig-your-key-id
 # Select the ephemeral DPoP signing profile (ES256, ES384, or ES512; defaults to ES256)
 MYINFO_V6_DPOP_SIGNING_ALG=ES256
 
+# Outbound transport limits and safe-read retry policy
+MYINFO_V6_CONNECT_TIMEOUT_SECONDS=5
+MYINFO_V6_REQUEST_TIMEOUT_SECONDS=15
+MYINFO_V6_SAFE_READ_MAX_ATTEMPTS=2
+MYINFO_V6_SAFE_READ_RETRY_DELAY_MILLISECONDS=200
+
 # Optional package routes
 MYINFO_V6_ENABLE_DEFAULT_AUTHORIZATION_REDIRECT_ROUTE=false
 MYINFO_V6_CALL_AUTHORIZATION_API_URI=/redirect-to-singpass-v6
@@ -120,6 +126,48 @@ MYINFO_V6_PUBLIC_JWKS_URI=/sp/v6/jwks
 
 MYINFO_V6_DEBUG_MODE=false
 ```
+
+### V6 Transport Recovery
+
+Every v6 request uses the configured connection and overall request timeouts. Safe-read attempts are total
+attempts, including the first request, and must be between 1 and 3. The retry delay must be between 0 and
+5,000 milliseconds.
+
+| Endpoint | Attempts | Automatically retried failures |
+|---|---:|---|
+| OpenID discovery | `MYINFO_V6_SAFE_READ_MAX_ATTEMPTS` | Connection failures, `429`, `502`, `503`, `504` |
+| Singpass JWKS | `MYINFO_V6_SAFE_READ_MAX_ATTEMPTS` | Connection failures, `429`, `502`, `503`, `504` |
+| UserInfo | `MYINFO_V6_SAFE_READ_MAX_ATTEMPTS` | Connection failures, `429`, `502`, `503`, `504`; a fresh DPoP proof and `jti` are generated for every attempt |
+| PAR | 1 | Never automatically retried |
+| Token exchange | 1 | Never automatically retried |
+
+Connection failures and exhausted retryable responses throw
+`Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\MyinfoV6TransportException`. Its `endpoint()` method returns a
+safe endpoint category, and `restartAuthorization()` tells the application how to recover. When
+`restartAuthorization()` is `true`, the authorization outcome is ambiguous: discard that attempted flow
+and start a new authorization. Never replay its old authorization code, client assertion, or DPoP proof.
+When it is `false`, an application may retry the operation later with the retained `VerifiedTokenSet`; the
+package will generate a new UserInfo DPoP proof.
+
+```php
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\MyinfoV6TransportException;
+
+try {
+    $tokenSet = $myinfoConnector->completeAuthorization($request);
+    $userInfo = $myinfoConnector->getVerifiedUserInfo($tokenSet);
+} catch (MyinfoV6TransportException $exception) {
+    if ($exception->restartAuthorization()) {
+        return redirect()->route('myinfo-v6.singpass');
+    }
+
+    return response()->json(['message' => 'Singpass is temporarily unavailable.'], 503);
+}
+```
+
+Singpass discovery and JWKS responses remain normally cached for one hour. If ID-token or UserInfo
+verification finds an unknown signing key or a bad signature, the package invalidates the cached Singpass
+JWKS and refreshes it exactly once before returning the existing sanitized invalid-token error. Decryption,
+algorithm, nonce, claim, and subject failures do not trigger a JWKS refresh.
 
 ### Generate JWKS
 

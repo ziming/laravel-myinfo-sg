@@ -10,13 +10,19 @@ use Saloon\CachePlugin\Contracts\Driver;
 use Saloon\CachePlugin\Drivers\LaravelCacheDriver;
 use Saloon\CachePlugin\Traits\HasCaching;
 use Saloon\Enums\Method;
-use Saloon\Http\SoloRequest;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoV6Request;
 
-class GetSingpassOpenIdConfigurationRequest extends SoloRequest implements Cacheable
+class GetSingpassOpenIdConfigurationRequest extends MyinfoV6Request implements Cacheable
 {
     use HasCaching;
 
     protected Method $method = Method::GET;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->enableSafeReadRetries();
+    }
 
     public function resolveEndpoint(): string
     {

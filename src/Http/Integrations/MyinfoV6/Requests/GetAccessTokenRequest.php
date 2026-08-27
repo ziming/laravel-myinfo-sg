@@ -11,12 +11,12 @@ use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\Serializer\CompactSerializer;
 use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
-use Saloon\Http\SoloRequest;
 use Saloon\Traits\Body\HasFormBody;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoV6Request;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\ClientAssertionSigningKeyResolver;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\DPoPProofGenerator;
 
-class GetAccessTokenRequest extends SoloRequest implements HasBody
+class GetAccessTokenRequest extends MyinfoV6Request implements HasBody
 {
     use HasFormBody;
 
@@ -30,6 +30,7 @@ class GetAccessTokenRequest extends SoloRequest implements HasBody
         private string $codeVerifier,
         private JWK $dpopPrivateSigningJwk,
     ) {
+        parent::__construct();
     }
 
     public function resolveEndpoint(): string

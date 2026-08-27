@@ -77,6 +77,18 @@ class GetUserRequestTest extends TestCase
         $this->assertNotSame($payload['jti'], $secondPayload['jti']);
     }
 
+    public function test_precomputed_proof_compatibility_path_is_never_retried(): void
+    {
+        $request = new GetUserRequest(
+            'https://stg-id.singpass.gov.sg/fapi/userinfo',
+            'test-access-token',
+            'precomputed-proof',
+        );
+
+        $this->assertSame(1, $request->tries);
+        $this->assertSame('precomputed-proof', $request->defaultHeaders()['DPoP']);
+    }
+
     private function accessTokenHash(string $accessToken): string
     {
         return rtrim(strtr(base64_encode(hash('sha256', $accessToken, true)), '+/', '-_'), '=');

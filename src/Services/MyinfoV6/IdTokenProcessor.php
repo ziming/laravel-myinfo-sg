@@ -12,6 +12,7 @@ use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\Clock;
 use Throwable;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidIdTokenException;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\SigningKeyRefreshRequiredException;
 
 final readonly class IdTokenProcessor
 {
@@ -61,6 +62,8 @@ final readonly class IdTokenProcessor
             $checker->check($claims, ['iss', 'aud', 'exp', 'iat', 'nonce', 'sub']);
 
             return $claims;
+        } catch (SigningKeyRefreshRequiredException $exception) {
+            throw $exception;
         } catch (Throwable) {
             throw new InvalidIdTokenException('The ID token is invalid.');
         }

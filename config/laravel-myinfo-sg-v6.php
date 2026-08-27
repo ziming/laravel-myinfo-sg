@@ -17,6 +17,12 @@ return [
     'chosen_jwks_sig_kid' => env('MYINFO_V6_CHOSEN_JWKS_SIG_KID'),
     'dpop_signing_alg' => env('MYINFO_V6_DPOP_SIGNING_ALG', 'ES256'),
 
+    // Outbound transport boundaries
+    'connect_timeout_seconds' => \Illuminate\Support\Env::get('MYINFO_V6_CONNECT_TIMEOUT_SECONDS', 5),
+    'request_timeout_seconds' => \Illuminate\Support\Env::get('MYINFO_V6_REQUEST_TIMEOUT_SECONDS', 15),
+    'safe_read_max_attempts' => \Illuminate\Support\Env::get('MYINFO_V6_SAFE_READ_MAX_ATTEMPTS', 2),
+    'safe_read_retry_delay_milliseconds' => \Illuminate\Support\Env::get('MYINFO_V6_SAFE_READ_RETRY_DELAY_MILLISECONDS', 200),
+
     'state_session_key' => env('MYINFO_V6_STATE_SESSION_KEY', 'myinfo_v6_state'),
     'nonce_session_key' => env('MYINFO_V6_NONCE_SESSION_KEY', 'myinfo_v6_nonce'),
     'code_verifier_session_key' => env('MYINFO_V6_CODE_VERIFIER_SESSION_KEY', 'myinfo_v6_code_verifier'),

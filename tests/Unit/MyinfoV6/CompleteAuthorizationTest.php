@@ -244,7 +244,9 @@ class CompleteAuthorizationTest extends TestCase
             $this->singpassSigningKey,
         );
 
-        $this->assertInvalidIdToken($transaction, $idToken);
+        $mockClient = $this->assertInvalidIdToken($transaction, $idToken);
+
+        $mockClient->assertSentCount(1, GetSingpassJwksRequest::class);
     }
 
     public function test_rejects_an_id_token_with_the_wrong_signature(): void
@@ -258,7 +260,9 @@ class CompleteAuthorizationTest extends TestCase
             innerHeaders: ['kid' => $this->singpassSigningKey->get('kid')],
         );
 
-        $this->assertInvalidIdToken($transaction, $idToken);
+        $mockClient = $this->assertInvalidIdToken($transaction, $idToken);
+
+        $mockClient->assertSentCount(2, GetSingpassJwksRequest::class);
     }
 
     public function test_rejects_an_id_token_with_the_wrong_transaction_nonce(): void
@@ -267,7 +271,68 @@ class CompleteAuthorizationTest extends TestCase
         $claims = $this->validClaims($transaction);
         $claims['nonce'] = 'nonce-from-another-transaction';
 
-        $this->assertInvalidIdToken($transaction, $this->idToken($claims));
+        $mockClient = $this->assertInvalidIdToken($transaction, $this->idToken($claims));
+
+        $mockClient->assertSentCount(1, GetSingpassJwksRequest::class);
+    }
+
+    public function test_refreshes_cached_jwks_once_for_a_rotated_id_token_signing_key(): void
+    {
+        $transaction = $this->storeTransaction('rotated-key-state');
+        $rotatedSigningKey = NestedTokenFactory::signingKey(kid: 'rotated-signing-key');
+        $idToken = NestedTokenFactory::idToken(
+            $this->validClaims($transaction),
+            $this->decryptionKey,
+            $rotatedSigningKey,
+        );
+        $jwksCalls = 0;
+        $mockClient = MockClient::global([
+            GetSingpassOpenIdConfigurationRequest::class => MockResponse::make($this->metadata()),
+            GetAccessTokenRequest::class => MockResponse::make([
+                'access_token' => 'rotated-access-token',
+                'id_token' => $idToken,
+                'token_type' => 'DPoP',
+            ]),
+            GetSingpassJwksRequest::class => function () use (&$jwksCalls, $rotatedSigningKey): MockResponse {
+                $jwksCalls++;
+                $key = $jwksCalls === 1 ? $this->singpassSigningKey : $rotatedSigningKey;
+
+                return MockResponse::make([
+                    'keys' => [$key->toPublic()->jsonSerialize()],
+                ]);
+            },
+        ]);
+
+        $tokenSet = (new MyinfoConnector)->completeAuthorization($this->callbackRequest($transaction));
+
+        $this->assertSame('rotated-access-token', $tokenSet->accessToken());
+        $this->assertSame(2, $jwksCalls);
+        $mockClient->assertSentCount(2, GetSingpassJwksRequest::class);
+    }
+
+    public function test_stops_after_one_forced_jwks_refresh_when_the_signing_key_is_still_unknown(): void
+    {
+        $transaction = $this->storeTransaction('still-unknown-key-state');
+        $unknownSigningKey = NestedTokenFactory::signingKey(kid: 'still-unknown-signing-key');
+        $idToken = NestedTokenFactory::idToken(
+            $this->validClaims($transaction),
+            $this->decryptionKey,
+            $unknownSigningKey,
+        );
+        $mockClient = $this->mockFlow([
+            'access_token' => 'must-not-be-returned',
+            'id_token' => $idToken,
+            'token_type' => 'DPoP',
+        ]);
+
+        try {
+            (new MyinfoConnector)->completeAuthorization($this->callbackRequest($transaction));
+            $this->fail('Expected the unknown signing key to remain invalid after one refresh.');
+        } catch (InvalidIdTokenException $exception) {
+            $this->assertSame('The ID token is invalid.', $exception->getMessage());
+        }
+
+        $mockClient->assertSentCount(2, GetSingpassJwksRequest::class);
     }
 
     private function storeTransaction(string $state): AuthorizationTransaction
@@ -354,9 +419,12 @@ class CompleteAuthorizationTest extends TestCase
         ];
     }
 
-    private function assertInvalidIdToken(AuthorizationTransaction $transaction, string $idToken): void
+    private function assertInvalidIdToken(
+        AuthorizationTransaction $transaction,
+        string $idToken,
+    ): MockClient
     {
-        $this->mockFlow([
+        $mockClient = $this->mockFlow([
             'access_token' => 'must-not-be-returned',
             'id_token' => $idToken,
             'token_type' => 'DPoP',
@@ -372,5 +440,7 @@ class CompleteAuthorizationTest extends TestCase
                 $exception->getMessage(),
             );
         }
+
+        return $mockClient;
     }
 }

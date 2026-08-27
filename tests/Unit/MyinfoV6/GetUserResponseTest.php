@@ -139,6 +139,42 @@ class GetUserResponseTest extends TestCase
         $mockClient->assertSentCount(0, GetSingpassJwksRequest::class);
     }
 
+    public function test_low_level_response_refreshes_cached_jwks_once_for_a_rotated_signing_key(): void
+    {
+        $claims = [
+            'person_info' => ['name' => ['value' => 'ROTATED USER']],
+            'iss' => 'https://stg-id.singpass.gov.sg/fapi',
+            'iat' => time(),
+            'sub' => 'rotated-subject',
+            'aud' => 'test-client-id',
+        ];
+        $rotatedSigningKey = NestedTokenFactory::signingKey(kid: 'rotated-low-level-key');
+        $compactUserInfo = NestedTokenFactory::userInfo(
+            $claims,
+            $this->decryptionKey,
+            $rotatedSigningKey,
+        );
+        $jwksCalls = 0;
+        $mockClient = MockClient::global([
+            GetSingpassOpenIdConfigurationRequest::class => MockResponse::make($this->metadata()),
+            GetUserRequest::class => MockResponse::make($compactUserInfo),
+            GetSingpassJwksRequest::class => function () use (&$jwksCalls, $rotatedSigningKey): MockResponse {
+                $jwksCalls++;
+                $key = $jwksCalls === 1 ? $this->singpassSigningKey : $rotatedSigningKey;
+
+                return MockResponse::make([
+                    'keys' => [$key->toPublic()->jsonSerialize()],
+                ]);
+            },
+        ]);
+
+        $response = (new MyinfoConnector)->getUser('compatibility-access-token');
+
+        $this->assertSame($claims, $response->json());
+        $this->assertSame(2, $jwksCalls);
+        $mockClient->assertSentCount(2, GetSingpassJwksRequest::class);
+    }
+
     /**
      * @return array<string, string>
      */

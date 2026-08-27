@@ -10,6 +10,8 @@ use RuntimeException;
 use Saloon\Http\Response;
 use Throwable;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidUserInfoException;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\SigningKeyRefreshRequiredException;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoV6RequestSender;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassJwksRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassOpenIdConfigurationRequest;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetValidator;
@@ -51,13 +53,32 @@ class GetUserResponse extends Response
             throw new InvalidUserInfoException('The UserInfo decryption keys are invalid.');
         }
 
-        $userInfo = (new UserInfoProcessor)->processUnbound(
-            $compactUserInfo,
-            $privateDecryptionJwks,
-            $this->fetchSingpassPublicJwks($jwksUri),
-            $issuer,
-            $clientId,
-        );
+        $processor = new UserInfoProcessor;
+        $singpassPublicJwks = $this->fetchSingpassPublicJwks($jwksUri);
+
+        try {
+            $userInfo = $processor->processUnbound(
+                $compactUserInfo,
+                $privateDecryptionJwks,
+                $singpassPublicJwks,
+                $issuer,
+                $clientId,
+            );
+        } catch (SigningKeyRefreshRequiredException) {
+            $refreshedJwks = $this->fetchSingpassPublicJwks($jwksUri, true);
+
+            try {
+                $userInfo = $processor->processUnbound(
+                    $compactUserInfo,
+                    $privateDecryptionJwks,
+                    $refreshedJwks,
+                    $issuer,
+                    $clientId,
+                );
+            } catch (Throwable) {
+                throw new InvalidUserInfoException('The UserInfo response is invalid.');
+            }
+        }
 
         return Arr::get($userInfo->claims(), $key, $default);
     }
@@ -81,7 +102,11 @@ class GetUserResponse extends Response
     /** @return array{issuer?: string, jwks_uri: string} */
     private function discoveryMetadata(): array
     {
-        $response = (new GetSingpassOpenIdConfigurationRequest)->send();
+        $response = (new MyinfoV6RequestSender)->send(
+            new GetSingpassOpenIdConfigurationRequest,
+            'discovery',
+            false,
+        );
 
         if (! $response->successful()) {
             throw new InvalidUserInfoException('The Singpass discovery metadata could not be loaded.');
@@ -127,9 +152,19 @@ class GetUserResponse extends Response
         return rtrim($issuerUri, '/').'/fapi';
     }
 
-    private function fetchSingpassPublicJwks(string $jwksUri): JWKSet
+    private function fetchSingpassPublicJwks(string $jwksUri, bool $invalidateCache = false): JWKSet
     {
-        $response = (new GetSingpassJwksRequest($jwksUri))->send();
+        $request = new GetSingpassJwksRequest($jwksUri);
+
+        if ($invalidateCache) {
+            $request->invalidateCache();
+        }
+
+        $response = (new MyinfoV6RequestSender)->send(
+            $request,
+            'jwks',
+            false,
+        );
 
         if (! $response->successful()) {
             throw new InvalidUserInfoException('The Singpass signing keys could not be loaded.');

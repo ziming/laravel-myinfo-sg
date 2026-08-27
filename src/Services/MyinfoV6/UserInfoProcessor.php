@@ -14,6 +14,7 @@ use Symfony\Component\Clock\Clock;
 use Throwable;
 use Ziming\LaravelMyinfoSg\Data\MyinfoV6\VerifiedUserInfo;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidUserInfoException;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\SigningKeyRefreshRequiredException;
 
 final readonly class UserInfoProcessor
 {
@@ -138,6 +139,8 @@ final readonly class UserInfoProcessor
             $checker->check($claims, ['person_info', 'iss', 'iat', 'sub', 'aud']);
 
             return new VerifiedUserInfo($claims);
+        } catch (SigningKeyRefreshRequiredException $exception) {
+            throw $exception;
         } catch (Throwable) {
             throw new InvalidUserInfoException('The UserInfo response is invalid.');
         }

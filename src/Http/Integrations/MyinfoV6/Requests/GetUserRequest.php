@@ -7,11 +7,11 @@ namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests;
 use InvalidArgumentException;
 use Jose\Component\Core\JWK;
 use Saloon\Enums\Method;
-use Saloon\Http\SoloRequest;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoV6Request;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Responses\GetUserResponse;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\DPoPProofGenerator;
 
-class GetUserRequest extends SoloRequest
+class GetUserRequest extends MyinfoV6Request
 {
     protected Method $method = Method::GET;
 
@@ -21,12 +21,19 @@ class GetUserRequest extends SoloRequest
 
     private ?string $dpopProof;
 
+    /** @var (\Closure(): string)|null */
+    private ?\Closure $dpopProofFactory = null;
+
     public function __construct(
         private string $userInfoEndpoint,
         private string $accessToken,
         JWK|string $dpopPrivateSigningJwk,
         ?JWK $deprecatedPublicSigningJwk = null,
     ) {
+        parent::__construct();
+        $this->enableSafeReadRetries();
+        $this->tries = 1;
+
         if (is_string($dpopPrivateSigningJwk)) {
             if (trim($dpopPrivateSigningJwk) === '' || $deprecatedPublicSigningJwk !== null) {
                 throw new InvalidArgumentException('The precomputed DPoP proof is invalid.');
@@ -34,7 +41,6 @@ class GetUserRequest extends SoloRequest
 
             $this->dpopPrivateSigningJwk = null;
             $this->dpopProof = $dpopPrivateSigningJwk;
-
             return;
         }
 
@@ -49,6 +55,24 @@ class GetUserRequest extends SoloRequest
         $this->dpopProof = null;
     }
 
+    /**
+     * Supply a fresh DPoP proof every time Saloon builds a pending request.
+     *
+     * @param \Closure(): string $dpopProofFactory
+     * @internal
+     */
+    public static function withDpopProofFactory(
+        string $userInfoEndpoint,
+        #[\SensitiveParameter] string $accessToken,
+        \Closure $dpopProofFactory,
+    ): self {
+        $request = new self($userInfoEndpoint, $accessToken, '[deferred]');
+        $request->dpopProof = null;
+        $request->dpopProofFactory = $dpopProofFactory;
+
+        return $request;
+    }
+
     public function resolveEndpoint(): string
     {
         return $this->userInfoEndpoint;
@@ -59,9 +83,11 @@ class GetUserRequest extends SoloRequest
      */
     public function defaultHeaders(): array
     {
-        $dpopProof = $this->dpopProof;
-
-        if ($dpopProof === null) {
+        if ($this->dpopProofFactory instanceof \Closure) {
+            $dpopProof = ($this->dpopProofFactory)();
+        } elseif ($this->dpopProof !== null) {
+            $dpopProof = $this->dpopProof;
+        } else {
             if (! $this->dpopPrivateSigningJwk instanceof JWK) {
                 throw new InvalidArgumentException('The DPoP request context is invalid.');
             }
@@ -72,6 +98,10 @@ class GetUserRequest extends SoloRequest
                 $this->dpopPrivateSigningJwk,
                 accessToken: $this->accessToken,
             );
+        }
+
+        if (trim($dpopProof) === '') {
+            throw new InvalidArgumentException('The DPoP proof factory returned an invalid proof.');
         }
 
         return [

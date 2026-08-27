@@ -10,9 +10,9 @@ use Saloon\CachePlugin\Contracts\Driver;
 use Saloon\CachePlugin\Drivers\LaravelCacheDriver;
 use Saloon\CachePlugin\Traits\HasCaching;
 use Saloon\Enums\Method;
-use Saloon\Http\SoloRequest;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoV6Request;
 
-class GetSingpassJwksRequest extends SoloRequest implements Cacheable
+class GetSingpassJwksRequest extends MyinfoV6Request implements Cacheable
 {
     use HasCaching;
 
@@ -20,6 +20,8 @@ class GetSingpassJwksRequest extends SoloRequest implements Cacheable
 
     public function __construct(private string $jwksUri)
     {
+        parent::__construct();
+        $this->enableSafeReadRetries();
     }
 
     public function resolveEndpoint(): string

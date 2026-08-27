@@ -8,6 +8,7 @@ use Jose\Component\Core\JWK;
 use Jose\Component\Core\JWKSet;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidIdTokenException;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\SigningKeyRefreshRequiredException;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\NestedJwtDecoder;
 use Ziming\LaravelMyinfoSg\Tests\TestCase;
 use Ziming\LaravelMyinfoSg\Tests\Unit\MyinfoV6\Support\NestedTokenFactory;
@@ -157,14 +158,28 @@ class NestedJwtDecoderTest extends TestCase
     public static function invalidInnerKeyHeaders(): iterable
     {
         yield 'missing kid' => [['kid' => null]];
-        yield 'unknown kid' => [['kid' => 'unknown-signing-key']];
+    }
+
+    public function test_unknown_inner_signing_key_requests_a_jwks_refresh(): void
+    {
+        $decryptionKey = NestedTokenFactory::encryptionKey();
+        $token = NestedTokenFactory::idToken(
+            ['sub' => 'S1234567A'],
+            $decryptionKey,
+            $this->signingKey,
+            innerHeaders: ['kid' => 'unknown-signing-key'],
+        );
+
+        $this->expectException(SigningKeyRefreshRequiredException::class);
+
+        $this->decode($token, $decryptionKey);
     }
 
     /**
      * @param array<string, mixed> $headers
      */
     #[DataProvider('invalidInnerKeyHeaders')]
-    public function test_rejects_missing_or_unknown_inner_key_id(array $headers): void
+    public function test_rejects_a_missing_inner_key_id(array $headers): void
     {
         $decryptionKey = NestedTokenFactory::encryptionKey();
         $token = NestedTokenFactory::idToken(
@@ -179,7 +194,7 @@ class NestedJwtDecoderTest extends TestCase
         $this->decode($token, $decryptionKey);
     }
 
-    public function test_rejects_a_signature_made_by_a_different_key(): void
+    public function test_a_signature_made_by_a_different_key_requests_a_jwks_refresh(): void
     {
         $decryptionKey = NestedTokenFactory::encryptionKey();
         $attackerKey = NestedTokenFactory::signingKey(kid: 'attacker-key');
@@ -190,7 +205,7 @@ class NestedJwtDecoderTest extends TestCase
             innerHeaders: ['kid' => $this->signingKey->get('kid')],
         );
 
-        $this->expectException(InvalidIdTokenException::class);
+        $this->expectException(SigningKeyRefreshRequiredException::class);
 
         $this->decode($token, $decryptionKey);
     }

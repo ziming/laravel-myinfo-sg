@@ -51,6 +51,7 @@ class MyinfoConnectorTest extends TestCase
         config()->set('laravel-myinfo-sg-v6.redirect_uri', 'https://client.example/callback');
         config()->set('laravel-myinfo-sg-v6.transaction_session_key', 'test_myinfo_transactions');
         config()->set('laravel-myinfo-sg-v6.transaction_ttl_seconds', 600);
+        config()->set('laravel-myinfo-sg-v6.safe_read_retry_delay_milliseconds', 0);
 
         $clientSigningJwk = JWKFactory::createECKey('P-256', [
             'alg' => 'ES256',
@@ -456,6 +457,89 @@ class MyinfoConnectorTest extends TestCase
                 && ! array_key_exists('d', $header['jwk'])
                 && $payload['ath'] === $this->accessTokenHash('verified-access-token');
         });
+    }
+
+    public function test_verified_userinfo_retry_uses_a_fresh_proof_for_the_same_token_and_key(): void
+    {
+        $tokenSet = $this->verifiedTokenSet();
+        $compactUserInfo = NestedTokenFactory::userInfo(
+            $this->validUserInfoClaims(),
+            $this->decryptionKey,
+            $this->singpassSigningKey,
+        );
+        $userInfoAttempts = 0;
+        $mockClient = MockClient::global([
+            GetSingpassOpenIdConfigurationRequest::class => MockResponse::make($this->metadata()),
+            GetUserRequest::class => function () use (&$userInfoAttempts, $compactUserInfo): MockResponse {
+                $userInfoAttempts++;
+
+                return $userInfoAttempts === 1
+                    ? MockResponse::make(['error' => 'temporarily_unavailable'], 503)
+                    : MockResponse::make($compactUserInfo);
+            },
+            GetSingpassJwksRequest::class => MockResponse::make([
+                'keys' => [$this->singpassSigningKey->toPublic()->jsonSerialize()],
+            ]),
+        ]);
+
+        $userInfo = (new MyinfoConnector)->getVerifiedUserInfo($tokenSet);
+
+        $this->assertSame('verified-subject', $userInfo->subject());
+        $this->assertSame(2, $userInfoAttempts);
+
+        $proofs = [];
+
+        foreach ($mockClient->getRecordedResponses() as $response) {
+            if (! ($response->getPendingRequest()->getRequest() instanceof GetUserRequest)) {
+                continue;
+            }
+
+            $proof = $response->getPendingRequest()->headers()->get('DPoP');
+            $this->assertIsString($proof);
+            $proofs[] = $this->decodeDpopProof($proof);
+        }
+
+        $this->assertCount(2, $proofs);
+        $this->assertSame(
+            (new JWK($proofs[0]['header']['jwk']))->thumbprint('sha256'),
+            (new JWK($proofs[1]['header']['jwk']))->thumbprint('sha256'),
+        );
+        $this->assertNotSame($proofs[0]['payload']['jti'], $proofs[1]['payload']['jti']);
+        $this->assertSame(
+            $this->accessTokenHash('verified-access-token'),
+            $proofs[0]['payload']['ath'],
+        );
+        $this->assertSame($proofs[0]['payload']['ath'], $proofs[1]['payload']['ath']);
+    }
+
+    public function test_verified_userinfo_refreshes_cached_jwks_once_for_a_rotated_signing_key(): void
+    {
+        $claims = $this->validUserInfoClaims();
+        $rotatedSigningKey = NestedTokenFactory::signingKey(kid: 'rotated-userinfo-signing-key');
+        $compactUserInfo = NestedTokenFactory::userInfo(
+            $claims,
+            $this->decryptionKey,
+            $rotatedSigningKey,
+        );
+        $jwksCalls = 0;
+        $mockClient = MockClient::global([
+            GetSingpassOpenIdConfigurationRequest::class => MockResponse::make($this->metadata()),
+            GetUserRequest::class => MockResponse::make($compactUserInfo),
+            GetSingpassJwksRequest::class => function () use (&$jwksCalls, $rotatedSigningKey): MockResponse {
+                $jwksCalls++;
+                $key = $jwksCalls === 1 ? $this->singpassSigningKey : $rotatedSigningKey;
+
+                return MockResponse::make([
+                    'keys' => [$key->toPublic()->jsonSerialize()],
+                ]);
+            },
+        ]);
+
+        $userInfo = (new MyinfoConnector)->getVerifiedUserInfo($this->verifiedTokenSet());
+
+        $this->assertSame($claims, $userInfo->claims());
+        $this->assertSame(2, $jwksCalls);
+        $mockClient->assertSentCount(2, GetSingpassJwksRequest::class);
     }
 
     /**

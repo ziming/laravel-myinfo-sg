@@ -25,6 +25,7 @@ use Ziming\LaravelMyinfoSg\Data\MyinfoV6\VerifiedUserInfo;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\AuthorizationResponseException;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidIdTokenException;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidUserInfoException;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\SigningKeyRefreshRequiredException;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetAccessTokenRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassJwksRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassOpenIdConfigurationRequest;
@@ -47,7 +48,7 @@ class MyinfoConnector extends Connector
     public function generateAuthorizationUrl(?string $redirectUri = null): string
     {
         $dpopSigningAlg = $this->configuredDpopSigningAlgorithm();
-        $metadata = $this->getValidatedDiscoveryMetadata($dpopSigningAlg);
+        $metadata = $this->getValidatedDiscoveryMetadata($dpopSigningAlg, false);
         $effectiveRedirectUri = $redirectUri ?? config('laravel-myinfo-sg-v6.redirect_uri');
 
         if (! is_string($effectiveRedirectUri) || $effectiveRedirectUri === '') {
@@ -82,8 +83,13 @@ class MyinfoConnector extends Connector
             $codeChallenge,
             $transaction->redirectUri,
         );
-        $parResponse = $parRequest->send();
-        $parData = $parResponse->json();
+        $parResponse = (new MyinfoV6RequestSender)->send($parRequest, 'par', true, $this);
+        $parData = $this->decodeJsonObject($parResponse->body());
+
+        if (! $parResponse->successful() || $parData === null) {
+            throw new RuntimeException('The pushed authorization request was rejected.');
+        }
+
         $requestUri = $parData['request_uri'] ?? null;
 
         if (! is_string($requestUri) || $requestUri === '') {
@@ -124,7 +130,7 @@ class MyinfoConnector extends Connector
             $transaction = $this->transactionStore()->pull($latestState);
 
             if ($transaction !== null) {
-                $metadata = $this->getValidatedDiscoveryMetadata($transaction->dpopSigningAlg);
+                $metadata = $this->getValidatedDiscoveryMetadata($transaction->dpopSigningAlg, true);
                 $dpopPrivateJwk = $transaction->dpopPrivateJwk();
                 $response = $this->sendAccessTokenRequest(
                     $metadata['token_endpoint'],
@@ -149,6 +155,7 @@ class MyinfoConnector extends Connector
         [$dpopPrivateJwk] = $this->getStoredDpopKeyPair();
         $metadata = $this->getValidatedDiscoveryMetadata(
             DPoPProofGenerator::signingAlgorithm($dpopPrivateJwk),
+            true,
         );
         $redirectUri = session(
             config('laravel-myinfo-sg-v6.redirect_uri_session_key'),
@@ -172,7 +179,12 @@ class MyinfoConnector extends Connector
             $codeVerifier,
             $dpopPrivateJwk,
         );
-        $response = $getAccessTokenRequest->send();
+        $response = (new MyinfoV6RequestSender)->send(
+            $getAccessTokenRequest,
+            'token',
+            true,
+            $this,
+        );
 
         return $response->json();
     }
@@ -190,7 +202,10 @@ class MyinfoConnector extends Connector
     public function completeAuthorization(Request $request): VerifiedTokenSet
     {
         $callback = $this->validateAuthorizationCallback($request);
-        $metadata = $this->getValidatedDiscoveryMetadata($callback->transaction->dpopSigningAlg);
+        $metadata = $this->getValidatedDiscoveryMetadata(
+            $callback->transaction->dpopSigningAlg,
+            true,
+        );
 
         if (! hash_equals($callback->transaction->issuer, $metadata['issuer'])) {
             throw new RuntimeException('The discovery issuer changed during authorization.');
@@ -212,8 +227,6 @@ class MyinfoConnector extends Connector
             $dpopPrivateJwk,
         );
         $tokenData = $this->validateTokenResponse($tokenResponse);
-        $singpassPublicJwks = $this->fetchSingpassPublicJwks($metadata['jwks_uri']);
-
         try {
             $privateDecryptionJwks = (new JwkSetValidator)->validatePrivateJwks(
                 config('laravel-myinfo-sg-v6.private_jwks'),
@@ -222,10 +235,17 @@ class MyinfoConnector extends Connector
             throw new InvalidIdTokenException('The ID token decryption keys are invalid.');
         }
 
-        $claims = (new IdTokenProcessor)->process(
+        $singpassPublicJwks = $this->fetchSingpassPublicJwks(
+            $metadata['jwks_uri'],
+            true,
+            InvalidIdTokenException::class,
+        );
+
+        $claims = $this->processIdTokenWithJwksRefresh(
             $tokenData['id_token'],
             $privateDecryptionJwks,
             $singpassPublicJwks,
+            $metadata['jwks_uri'],
             $callback->transaction->issuer,
             $clientId,
             $callback->transaction->nonce,
@@ -249,7 +269,10 @@ class MyinfoConnector extends Connector
      */
     public function getAccessTokenFromValidatedCallback(ValidatedAuthorizationCallback $callback): array
     {
-        $metadata = $this->getValidatedDiscoveryMetadata($callback->transaction->dpopSigningAlg);
+        $metadata = $this->getValidatedDiscoveryMetadata(
+            $callback->transaction->dpopSigningAlg,
+            true,
+        );
 
         if (! hash_equals($callback->transaction->issuer, $metadata['issuer'])) {
             throw new RuntimeException('The discovery issuer changed during authorization.');
@@ -279,16 +302,20 @@ class MyinfoConnector extends Connector
         [$dpopPrivateJwk] = $this->getStoredDpopKeyPair();
         $metadata = $this->getValidatedDiscoveryMetadata(
             DPoPProofGenerator::signingAlgorithm($dpopPrivateJwk),
-        );
-
-        $getUserRequest = new GetUserRequest(
-            $metadata['userinfo_endpoint'],
-            $accessToken,
-            $dpopPrivateJwk,
+            false,
         );
 
         /** @var GetUserResponse $response */
-        $response = $this->send($getUserRequest);
+        $response = (new MyinfoV6RequestSender)->sendWithRequestFactory(
+            fn (): GetUserRequest => new GetUserRequest(
+                $metadata['userinfo_endpoint'],
+                $accessToken,
+                $dpopPrivateJwk,
+            ),
+            'userinfo',
+            false,
+            $this,
+        );
 
         return $response;
     }
@@ -298,34 +325,47 @@ class MyinfoConnector extends Connector
      */
     public function getVerifiedUserInfo(VerifiedTokenSet $tokenSet): VerifiedUserInfo
     {
-        $metadata = $this->getValidatedDiscoveryMetadata($tokenSet->dpopSigningAlgorithm());
+        $metadata = $this->getValidatedDiscoveryMetadata(
+            $tokenSet->dpopSigningAlgorithm(),
+            false,
+        );
         $clientId = config('laravel-myinfo-sg-v6.client_id');
 
         if (! is_string($clientId) || $clientId === '') {
             throw new InvalidUserInfoException('MyInfo V6 client ID is not configured.');
         }
 
-        $getUserRequest = new GetUserRequest(
-            $metadata['userinfo_endpoint'],
-            $tokenSet->accessToken(),
-            $tokenSet->createUserInfoDpopProof($metadata['userinfo_endpoint']),
+        $response = (new MyinfoV6RequestSender)->sendWithRequestFactory(
+            fn (): GetUserRequest => GetUserRequest::withDpopProofFactory(
+                $metadata['userinfo_endpoint'],
+                $tokenSet->accessToken(),
+                fn (): string => $tokenSet->createUserInfoDpopProof($metadata['userinfo_endpoint']),
+            ),
+            'userinfo',
+            false,
+            $this,
         );
-        $response = $this->send($getUserRequest);
         $compactUserInfo = $this->validateUserInfoResponse($response);
 
         try {
             $privateDecryptionJwks = (new JwkSetValidator)->validatePrivateJwks(
                 config('laravel-myinfo-sg-v6.private_jwks'),
             );
-            $singpassPublicJwks = $this->fetchSingpassPublicJwks($metadata['jwks_uri']);
         } catch (Throwable) {
             throw new InvalidUserInfoException('The UserInfo verification keys are invalid.');
         }
 
-        return (new UserInfoProcessor)->process(
+        $singpassPublicJwks = $this->fetchSingpassPublicJwks(
+            $metadata['jwks_uri'],
+            false,
+            InvalidUserInfoException::class,
+        );
+
+        return $this->processUserInfoWithJwksRefresh(
             $compactUserInfo,
             $privateDecryptionJwks,
             $singpassPublicJwks,
+            $metadata['jwks_uri'],
             $metadata['issuer'],
             $clientId,
             $tokenSet->subject(),
@@ -379,11 +419,23 @@ class MyinfoConnector extends Connector
      *     jwks_uri: string
      * }
      */
-    private function getValidatedDiscoveryMetadata(string $dpopSigningAlg): array
+    private function getValidatedDiscoveryMetadata(
+        string $dpopSigningAlg,
+        bool $restartAuthorization,
+    ): array
     {
         $this->assertLocallySupportedDpopAlgorithm($dpopSigningAlg);
-        $response = (new GetSingpassOpenIdConfigurationRequest)->send();
-        $metadata = $response->json();
+        $response = (new MyinfoV6RequestSender)->send(
+            new GetSingpassOpenIdConfigurationRequest,
+            'discovery',
+            $restartAuthorization,
+            $this,
+        );
+        $metadata = $this->decodeJsonObject($response->body());
+
+        if (! $response->successful() || $metadata === null) {
+            throw new RuntimeException('The Singpass discovery metadata could not be loaded.');
+        }
 
         $issuerUri = config('laravel-myinfo-sg-v6.issuer_uri');
 
@@ -510,7 +562,7 @@ class MyinfoConnector extends Connector
             $dpopPrivateJwk,
         );
 
-        return $request->send();
+        return (new MyinfoV6RequestSender)->send($request, 'token', true, $this);
     }
 
     /**
@@ -597,12 +649,31 @@ class MyinfoConnector extends Connector
         return $error;
     }
 
-    private function fetchSingpassPublicJwks(string $jwksUri): JWKSet
+    /**
+     * @param class-string<InvalidIdTokenException|InvalidUserInfoException> $invalidException
+     */
+    private function fetchSingpassPublicJwks(
+        string $jwksUri,
+        bool $restartAuthorization,
+        string $invalidException,
+        bool $invalidateCache = false,
+    ): JWKSet
     {
-        $response = (new GetSingpassJwksRequest($jwksUri))->send();
+        $request = new GetSingpassJwksRequest($jwksUri);
+
+        if ($invalidateCache) {
+            $request->invalidateCache();
+        }
+
+        $response = (new MyinfoV6RequestSender)->send(
+            $request,
+            'jwks',
+            $restartAuthorization,
+            $this,
+        );
 
         if (! $response->successful()) {
-            throw new InvalidIdTokenException('The Singpass signing keys could not be loaded.');
+            throw new $invalidException('The Singpass signing keys could not be loaded.');
         }
 
         try {
@@ -627,7 +698,96 @@ class MyinfoConnector extends Connector
 
             return JWKSet::createFromKeyData($data);
         } catch (Throwable) {
-            throw new InvalidIdTokenException('The Singpass signing keys are invalid.');
+            throw new $invalidException('The Singpass signing keys are invalid.');
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function processIdTokenWithJwksRefresh(
+        #[\SensitiveParameter] string $idToken,
+        JWKSet $privateDecryptionJwks,
+        JWKSet $singpassPublicJwks,
+        string $jwksUri,
+        string $expectedIssuer,
+        string $clientId,
+        string $expectedNonce,
+    ): array {
+        $processor = new IdTokenProcessor;
+
+        try {
+            return $processor->process(
+                $idToken,
+                $privateDecryptionJwks,
+                $singpassPublicJwks,
+                $expectedIssuer,
+                $clientId,
+                $expectedNonce,
+            );
+        } catch (SigningKeyRefreshRequiredException) {
+            $refreshedJwks = $this->fetchSingpassPublicJwks(
+                $jwksUri,
+                true,
+                InvalidIdTokenException::class,
+                true,
+            );
+
+            try {
+                return $processor->process(
+                    $idToken,
+                    $privateDecryptionJwks,
+                    $refreshedJwks,
+                    $expectedIssuer,
+                    $clientId,
+                    $expectedNonce,
+                );
+            } catch (Throwable) {
+                throw new InvalidIdTokenException('The ID token is invalid.');
+            }
+        }
+    }
+
+    private function processUserInfoWithJwksRefresh(
+        #[\SensitiveParameter] string $compactUserInfo,
+        JWKSet $privateDecryptionJwks,
+        JWKSet $singpassPublicJwks,
+        string $jwksUri,
+        string $expectedIssuer,
+        string $clientId,
+        string $expectedSubject,
+    ): VerifiedUserInfo {
+        $processor = new UserInfoProcessor;
+
+        try {
+            return $processor->process(
+                $compactUserInfo,
+                $privateDecryptionJwks,
+                $singpassPublicJwks,
+                $expectedIssuer,
+                $clientId,
+                $expectedSubject,
+            );
+        } catch (SigningKeyRefreshRequiredException) {
+            $refreshedJwks = $this->fetchSingpassPublicJwks(
+                $jwksUri,
+                false,
+                InvalidUserInfoException::class,
+                true,
+            );
+
+            try {
+                return $processor->process(
+                    $compactUserInfo,
+                    $privateDecryptionJwks,
+                    $refreshedJwks,
+                    $expectedIssuer,
+                    $clientId,
+                    $expectedSubject,
+                );
+            } catch (Throwable) {
+                throw new InvalidUserInfoException('The UserInfo response is invalid.');
+            }
         }
     }
 }

@@ -12,13 +12,13 @@ use Jose\Component\Signature\Serializer\CompactSerializer;
 use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
 use Saloon\Http\Connector;
-use Saloon\Http\SoloRequest;
 use Saloon\Traits\Body\HasFormBody;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoConnector;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoV6Request;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\ClientAssertionSigningKeyResolver;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\DPoPProofGenerator;
 
-class PushedAuthorizationRequest extends SoloRequest implements HasBody
+class PushedAuthorizationRequest extends MyinfoV6Request implements HasBody
 {
     protected Method $method = Method::POST;
 
@@ -33,6 +33,7 @@ class PushedAuthorizationRequest extends SoloRequest implements HasBody
         private string $codeChallenge,
         private ?string $redirectUri = null,
     ) {
+        parent::__construct();
     }
 
     public function resolveEndpoint(): string

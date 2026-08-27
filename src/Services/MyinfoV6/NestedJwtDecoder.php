@@ -26,6 +26,7 @@ use stdClass;
 use Throwable;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidIdTokenException;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidUserInfoException;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\SigningKeyRefreshRequiredException;
 
 final class NestedJwtDecoder
 {
@@ -96,18 +97,26 @@ final class NestedJwtDecoder
                 throw new InvalidArgumentException('The JWS algorithm profile is invalid.');
             }
 
-            $signingKey = $this->keyById($publicSigningJwks, $innerKid);
+            if (! $publicSigningJwks->has($innerKid)) {
+                throw new SigningKeyRefreshRequiredException;
+            }
+
+            $signingKey = $publicSigningJwks->get($innerKid);
             $this->assertSigningKey($signingKey, $innerAlgorithm);
 
-            $jwsLoader = new JWSLoader(
-                new JWSSerializerManager([$jwsSerializer]),
-                new JWSVerifier(new AlgorithmManager([new ES256])),
-                null,
-            );
-            $verified = $jwsLoader->loadAndVerifyWithKey($compactJws, $signingKey, $signature);
+            try {
+                $jwsLoader = new JWSLoader(
+                    new JWSSerializerManager([$jwsSerializer]),
+                    new JWSVerifier(new AlgorithmManager([new ES256])),
+                    null,
+                );
+                $verified = $jwsLoader->loadAndVerifyWithKey($compactJws, $signingKey, $signature);
+            } catch (Throwable) {
+                throw new SigningKeyRefreshRequiredException;
+            }
 
             if ($signature !== 0 || ! is_string($verified->getPayload())) {
-                throw new InvalidArgumentException('The JWS payload is invalid.');
+                throw new SigningKeyRefreshRequiredException;
             }
 
             $payload = json_decode(
@@ -130,7 +139,7 @@ final class NestedJwtDecoder
             }
 
             return $payload;
-        } catch (InvalidIdTokenException|InvalidUserInfoException $exception) {
+        } catch (InvalidIdTokenException|InvalidUserInfoException|SigningKeyRefreshRequiredException $exception) {
             throw $exception;
         } catch (Throwable) {
             throw match ($context) {
