@@ -72,8 +72,9 @@ The v6 connector handles these parts for you:
 - ID token JWE decryption
 - ID token JWS signature verification
 - ID token issuer, audience, expiry, issued-at, and nonce verification
-- userinfo JWE decryption
-- userinfo JWS signature verification
+- UserInfo JWE decryption and JWS signature verification
+- UserInfo issuer, audience, issued-at, subject, and `person_info` verification
+- ID-token-to-UserInfo subject binding
 
 The v6 flow is session-backed. Your authorization redirect route and callback route should run behind Laravel's `web` middleware so the package can keep:
 
@@ -244,10 +245,12 @@ PKCE verifier, redirect URI, nonce, issuer, or DPoP key.
 
 ### Handle The Callback
 
-You still need to define your own callback route. Use `completeAuthorization()` as the secure completion
-boundary. It validates and consumes the transaction-scoped `state`, compares callback `iss` exactly,
-exchanges the code with that transaction's PKCE and DPoP context, validates the token response, decrypts
-and verifies the ID token, and verifies its issuer, audience, expiry, issued-at time, nonce, and subject.
+You still need to define your own callback route. Use `completeAuthorization()` followed by
+`getVerifiedUserInfo()` as the secure completion flow. It validates and consumes the transaction-scoped
+`state`, compares callback `iss` exactly, exchanges the code with that transaction's PKCE and DPoP
+context, and verifies the ID token. The UserInfo request then reuses that same transaction DPoP key,
+includes the access-token hash in `ath`, verifies the response, and requires its `sub` to match the
+verified ID-token subject.
 
 ```php
 <?php
@@ -259,10 +262,9 @@ use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoConnector;
 Route::get('/callback/myinfo-v6', function (Request $request) {
     $myinfoConnector = new MyinfoConnector;
     $tokenSet = $myinfoConnector->completeAuthorization($request);
+    $userInfo = $myinfoConnector->getVerifiedUserInfo($tokenSet);
 
-    return response()->json([
-        'subject' => $tokenSet->subject(),
-    ]);
+    return response()->json($userInfo->personInfo());
 })->middleware('web');
 ```
 
@@ -271,13 +273,24 @@ claims through `claims()`, the trusted subject through `subject()`, and the exac
 `tokenType()`. Its access token and transaction-bound private DPoP key are excluded from debug and JSON
 output, and the object cannot be serialized.
 
-Time-based ID-token checks use a fixed two-second clock-skew allowance. Beyond that allowance, the current
-time must be before `exp`, and `iat` must not be in the future.
+`getVerifiedUserInfo()` returns a `VerifiedUserInfo` DTO. Its `claims()` method exposes the full verified
+claim set, `subject()` exposes the subject that was matched to the ID token, and `personInfo()` returns the
+typed `person_info` array. UserInfo requires `person_info`, `iss`, `iat`, `sub`, and `aud`. Its `exp` claim
+is optional, but is validated when present.
+
+The authorization `nonce` is verified only in the ID token. UserInfo does not carry or require a nonce;
+it is bound to the authenticated session by matching its `sub` to the verified ID-token subject. Time-based
+ID-token and UserInfo checks use a fixed two-second clock-skew allowance. Beyond that allowance, the current
+time must be before any applicable `exp`, and `iat` must not be in the future.
 
 `getAccessToken(string $code)` and `getAccessTokenFromValidatedCallback()` remain available as low-level
 compatibility methods. They return raw, unverified token-endpoint data. The string-only method also cannot
 validate callback `state` or `iss`. Do not treat either result as authenticated or use either method as the
 primary callback path in new integrations.
+
+`getUser(string $accessToken)` is also a low-level compatibility method. It verifies the UserInfo signature
+and required claim shapes through the shared processor, but a bare access-token string cannot prove that its
+UserInfo `sub` matches a verified ID token. Use `getVerifiedUserInfo($tokenSet)` for subject-bound data.
 
 ### Public JWKS Endpoint
 

@@ -20,8 +20,10 @@ use Throwable;
 use Ziming\LaravelMyinfoSg\Data\MyinfoV6\AuthorizationTransaction;
 use Ziming\LaravelMyinfoSg\Data\MyinfoV6\ValidatedAuthorizationCallback;
 use Ziming\LaravelMyinfoSg\Data\MyinfoV6\VerifiedTokenSet;
+use Ziming\LaravelMyinfoSg\Data\MyinfoV6\VerifiedUserInfo;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\AuthorizationResponseException;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidIdTokenException;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidUserInfoException;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetAccessTokenRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassJwksRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassOpenIdConfigurationRequest;
@@ -32,6 +34,7 @@ use Ziming\LaravelMyinfoSg\Services\MyinfoV6\AuthorizationCallbackValidator;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\AuthorizationTransactionStore;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\IdTokenProcessor;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetValidator;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\UserInfoProcessor;
 
 class MyinfoConnector extends Connector
 {
@@ -259,6 +262,10 @@ class MyinfoConnector extends Connector
     }
 
     /**
+     * Low-level compatibility path without ID-token-to-UserInfo subject binding.
+     *
+     * Prefer getVerifiedUserInfo() for new integrations.
+     *
      * @throws \JsonException
      */
     public function getUser(string $accessToken): GetUserResponse
@@ -277,6 +284,45 @@ class MyinfoConnector extends Connector
         $response = $this->send($getUserRequest);
 
         return $response;
+    }
+
+    /**
+     * Fetch, decrypt, verify, and bind UserInfo to the verified ID-token subject.
+     */
+    public function getVerifiedUserInfo(VerifiedTokenSet $tokenSet): VerifiedUserInfo
+    {
+        $metadata = $this->getValidatedDiscoveryMetadata();
+        $clientId = config('laravel-myinfo-sg-v6.client_id');
+
+        if (! is_string($clientId) || $clientId === '') {
+            throw new InvalidUserInfoException('MyInfo V6 client ID is not configured.');
+        }
+
+        $getUserRequest = new GetUserRequest(
+            $metadata['userinfo_endpoint'],
+            $tokenSet->accessToken(),
+            $tokenSet->createUserInfoDpopProof($metadata['userinfo_endpoint']),
+        );
+        $response = $this->send($getUserRequest);
+        $compactUserInfo = $this->validateUserInfoResponse($response);
+
+        try {
+            $privateDecryptionJwks = (new JwkSetValidator)->validatePrivateJwks(
+                config('laravel-myinfo-sg-v6.private_jwks'),
+            );
+            $singpassPublicJwks = $this->fetchSingpassPublicJwks($metadata['jwks_uri']);
+        } catch (Throwable) {
+            throw new InvalidUserInfoException('The UserInfo verification keys are invalid.');
+        }
+
+        return (new UserInfoProcessor)->process(
+            $compactUserInfo,
+            $privateDecryptionJwks,
+            $singpassPublicJwks,
+            $metadata['issuer'],
+            $clientId,
+            $tokenSet->subject(),
+        );
     }
 
     public function resolveBaseUrl(): string
@@ -474,6 +520,22 @@ class MyinfoConnector extends Connector
             'id_token' => $idToken,
             'token_type' => $tokenType,
         ];
+    }
+
+    private function validateUserInfoResponse(Response $response): string
+    {
+        $body = $response->body();
+        $data = $this->decodeJsonObject($body);
+
+        if (
+            ! $response->successful()
+            || ($data !== null && array_key_exists('error', $data))
+            || trim($body) === ''
+        ) {
+            throw new InvalidUserInfoException('The authorization provider returned an invalid UserInfo response.');
+        }
+
+        return $body;
     }
 
     /**

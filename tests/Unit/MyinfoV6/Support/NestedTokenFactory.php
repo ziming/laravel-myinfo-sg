@@ -44,7 +44,7 @@ final class NestedTokenFactory
     }
 
     /**
-     * @param array<string, mixed> $claims
+     * @param array<string, array|bool|float|int|object|string|null> $claims
      * @param array<string, mixed> $outerHeaders
      * @param array<string, mixed> $innerHeaders
      */
@@ -54,6 +54,33 @@ final class NestedTokenFactory
         JWK $signingKey,
         string $keyWrappingAlgorithm = 'ECDH-ES+A128KW',
         string $contentEncryptionAlgorithm = 'A256CBC-HS512',
+        string $signingAlgorithm = 'ES256',
+        array $outerHeaders = [],
+        array $innerHeaders = [],
+    ): string {
+        return self::nestedToken(
+            json_encode($claims, JSON_THROW_ON_ERROR),
+            $encryptionKey,
+            $signingKey,
+            $keyWrappingAlgorithm,
+            $contentEncryptionAlgorithm,
+            $signingAlgorithm,
+            $outerHeaders,
+            $innerHeaders,
+        );
+    }
+
+    /**
+     * @param array<string, array|bool|float|int|object|string|null> $claims
+     * @param array<string, mixed> $outerHeaders
+     * @param array<string, mixed> $innerHeaders
+     */
+    public static function userInfo(
+        array $claims,
+        JWK $encryptionKey,
+        JWK $signingKey,
+        string $keyWrappingAlgorithm = 'ECDH-ES+A128KW',
+        string $contentEncryptionAlgorithm = 'A256GCM',
         string $signingAlgorithm = 'ES256',
         array $outerHeaders = [],
         array $innerHeaders = [],

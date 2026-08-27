@@ -22,8 +22,10 @@ use Jose\Component\Signature\JWSLoader;
 use Jose\Component\Signature\JWSVerifier;
 use Jose\Component\Signature\Serializer\CompactSerializer as JwsCompactSerializer;
 use Jose\Component\Signature\Serializer\JWSSerializerManager;
+use stdClass;
 use Throwable;
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidIdTokenException;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidUserInfoException;
 
 final class NestedJwtDecoder
 {
@@ -32,6 +34,9 @@ final class NestedJwtDecoder
     public const string USERINFO = 'userinfo';
 
     /**
+     * A JWT payload is an extensible JSON object, so decoded claim values cannot
+     * be represented by one narrower PHP value type at this trust boundary.
+     *
      * @return array<array-key, mixed>
      */
     public function decode(
@@ -39,6 +44,7 @@ final class NestedJwtDecoder
         #[\SensitiveParameter] string $compactToken,
         JWKSet $privateDecryptionJwks,
         JWKSet $publicSigningJwks,
+        bool $preserveJsonObjects = false,
     ): array {
         try {
             $profile = $this->profile($context);
@@ -104,17 +110,37 @@ final class NestedJwtDecoder
                 throw new InvalidArgumentException('The JWS payload is invalid.');
             }
 
-            $payload = json_decode($verified->getPayload(), true, 512, JSON_THROW_ON_ERROR);
+            $payload = json_decode(
+                $verified->getPayload(),
+                ! $preserveJsonObjects,
+                512,
+                JSON_THROW_ON_ERROR,
+            );
+
+            if ($preserveJsonObjects && ! $payload instanceof stdClass) {
+                throw new InvalidArgumentException('The JWT payload must be a JSON object or array.');
+            }
+
+            if ($payload instanceof stdClass) {
+                return get_object_vars($payload);
+            }
 
             if (! is_array($payload)) {
                 throw new InvalidArgumentException('The JWT payload must be a JSON object or array.');
             }
 
             return $payload;
-        } catch (InvalidIdTokenException $exception) {
+        } catch (InvalidIdTokenException|InvalidUserInfoException $exception) {
             throw $exception;
         } catch (Throwable) {
-            throw new InvalidIdTokenException('The ID token could not be decrypted and verified.');
+            throw match ($context) {
+                self::USERINFO => new InvalidUserInfoException(
+                    'The UserInfo response could not be decrypted and verified.'
+                ),
+                default => new InvalidIdTokenException(
+                    'The ID token could not be decrypted and verified.'
+                ),
+            };
         }
     }
 
@@ -137,6 +163,8 @@ final class NestedJwtDecoder
     }
 
     /**
+     * JOSE protected headers are extensible JSON objects supplied by the token.
+     *
      * @param array<string, mixed> $headers
      */
     private function requiredProtectedHeader(array $headers, string $name): string

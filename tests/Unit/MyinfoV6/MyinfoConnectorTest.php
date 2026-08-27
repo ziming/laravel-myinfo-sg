@@ -12,18 +12,30 @@ use Jose\Component\KeyManagement\JWKFactory;
 use RuntimeException;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
+use Symfony\Component\Clock\Clock;
+use Symfony\Component\Clock\MockClock;
+use Symfony\Component\Clock\NativeClock;
 use Ziming\LaravelMyinfoSg\Data\MyinfoV6\AuthorizationTransaction;
 use Ziming\LaravelMyinfoSg\Data\MyinfoV6\ValidatedAuthorizationCallback;
+use Ziming\LaravelMyinfoSg\Data\MyinfoV6\VerifiedTokenSet;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV6\InvalidUserInfoException;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoConnector;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetAccessTokenRequest;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassJwksRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetSingpassOpenIdConfigurationRequest;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetUserRequest;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\PushedAuthorizationRequest;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\AuthorizationTransactionStore;
 use Ziming\LaravelMyinfoSg\Tests\TestCase;
+use Ziming\LaravelMyinfoSg\Tests\Unit\MyinfoV6\Support\NestedTokenFactory;
 
 class MyinfoConnectorTest extends TestCase
 {
     private string $privateDpopJwkJson;
+
+    private JWK $decryptionKey;
+
+    private JWK $singpassSigningKey;
 
     public function setUp(): void
     {
@@ -32,6 +44,7 @@ class MyinfoConnectorTest extends TestCase
         config()->set('cache.default', 'array');
         Cache::flush();
         CarbonImmutable::setTestNow('2026-08-27 10:00:00');
+        Clock::set(new MockClock('@'.CarbonImmutable::now()->timestamp));
         config()->set('laravel-myinfo-sg-v6.issuer_uri', 'https://stg-id.singpass.gov.sg');
         config()->set('laravel-myinfo-sg-v6.client_id', 'test-client-id');
         config()->set('laravel-myinfo-sg-v6.redirect_uri', 'https://client.example/callback');
@@ -44,8 +57,13 @@ class MyinfoConnectorTest extends TestCase
             'kid' => 'client-signing-key',
         ]);
         config()->set('laravel-myinfo-sg-v6.chosen_jwks_sig_kid', 'client-signing-key');
+        $this->decryptionKey = NestedTokenFactory::encryptionKey();
+        $this->singpassSigningKey = NestedTokenFactory::signingKey();
         config()->set('laravel-myinfo-sg-v6.private_jwks', json_encode([
-            'keys' => [$clientSigningJwk->jsonSerialize()],
+            'keys' => [
+                $clientSigningJwk->jsonSerialize(),
+                $this->decryptionKey->jsonSerialize(),
+            ],
         ], JSON_THROW_ON_ERROR));
 
         $this->privateDpopJwkJson = json_encode(
@@ -58,6 +76,7 @@ class MyinfoConnectorTest extends TestCase
     {
         MockClient::destroyGlobal();
         CarbonImmutable::setTestNow();
+        Clock::set(new NativeClock);
 
         parent::tearDown();
     }
@@ -234,6 +253,122 @@ class MyinfoConnectorTest extends TestCase
         $mockClient->assertSentCount(1, GetAccessTokenRequest::class);
     }
 
+    public function test_verified_userinfo_uses_the_token_set_dpop_context_and_binds_the_subject(): void
+    {
+        $boundDpopKey = JWKFactory::createECKey('P-256', [
+            'alg' => 'ES256',
+            'use' => 'sig',
+        ]);
+        $tokenSet = new VerifiedTokenSet(
+            'verified-access-token',
+            ['sub' => 'verified-subject'],
+            'DPoP',
+            $boundDpopKey,
+        );
+        $claims = $this->validUserInfoClaims();
+        $compactUserInfo = NestedTokenFactory::userInfo(
+            $claims,
+            $this->decryptionKey,
+            $this->singpassSigningKey,
+        );
+        session()->put(
+            config('laravel-myinfo-sg-v6.dpop_private_jwk_session_key'),
+            'invalid-session-global-key',
+        );
+        $mockClient = MockClient::global([
+            GetSingpassOpenIdConfigurationRequest::class => MockResponse::make($this->metadata()),
+            GetUserRequest::class => MockResponse::make($compactUserInfo),
+            GetSingpassJwksRequest::class => MockResponse::make([
+                'keys' => [$this->singpassSigningKey->toPublic()->jsonSerialize()],
+            ]),
+        ]);
+
+        $userInfo = (new MyinfoConnector)->getVerifiedUserInfo($tokenSet);
+
+        $this->assertSame($claims, $userInfo->claims());
+        $this->assertSame($claims['person_info'], $userInfo->personInfo());
+        $mockClient->assertSent(function ($request, $response) use ($boundDpopKey): bool {
+            if (! $request instanceof GetUserRequest) {
+                return false;
+            }
+
+            $headers = $response->getPendingRequest()->headers()->all();
+            $proof = $headers['DPoP'] ?? null;
+
+            if (! is_string($proof)) {
+                return false;
+            }
+
+            [$encodedHeader, $encodedPayload] = explode('.', $proof, 3);
+            $header = json_decode($this->decodeBase64Url($encodedHeader), true, 512, JSON_THROW_ON_ERROR);
+            $payload = json_decode($this->decodeBase64Url($encodedPayload), true, 512, JSON_THROW_ON_ERROR);
+
+            return ($headers['Authorization'] ?? null) === 'DPoP verified-access-token'
+                && $header['jwk']['x'] === $boundDpopKey->toPublic()->get('x')
+                && $header['jwk']['y'] === $boundDpopKey->toPublic()->get('y')
+                && ! array_key_exists('d', $header['jwk'])
+                && $payload['ath'] === $this->accessTokenHash('verified-access-token');
+        });
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>, int}>
+     */
+    public static function userInfoErrorResponses(): iterable
+    {
+        yield 'non-success response' => [[
+            'error' => 'invalid_token',
+            'error_description' => 'must remain private',
+        ], 401];
+        yield 'error JSON with success status' => [[
+            'error' => 'invalid_dpop_proof',
+            'error_description' => 'must remain private',
+        ], 200];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('userInfoErrorResponses')]
+    public function test_verified_userinfo_rejects_error_json_before_jose_processing(
+        array $body,
+        int $status,
+    ): void {
+        $mockClient = MockClient::global([
+            GetSingpassOpenIdConfigurationRequest::class => MockResponse::make($this->metadata()),
+            GetUserRequest::class => MockResponse::make($body, $status),
+            GetSingpassJwksRequest::class => MockResponse::make([]),
+        ]);
+
+        try {
+            (new MyinfoConnector)->getVerifiedUserInfo($this->verifiedTokenSet());
+            $this->fail('Expected invalid UserInfo HTTP response to fail.');
+        } catch (InvalidUserInfoException $exception) {
+            $this->assertStringNotContainsString('must remain private', $exception->getMessage());
+            $this->assertStringNotContainsString('verified-access-token', $exception->getMessage());
+        }
+
+        $mockClient->assertSentCount(0, GetSingpassJwksRequest::class);
+    }
+
+    public function test_verified_userinfo_rejects_a_subject_that_differs_from_the_id_token(): void
+    {
+        $claims = $this->validUserInfoClaims();
+        $claims['sub'] = 'different-subject';
+        MockClient::global([
+            GetSingpassOpenIdConfigurationRequest::class => MockResponse::make($this->metadata()),
+            GetUserRequest::class => MockResponse::make(NestedTokenFactory::userInfo(
+                $claims,
+                $this->decryptionKey,
+                $this->singpassSigningKey,
+            )),
+            GetSingpassJwksRequest::class => MockResponse::make([
+                'keys' => [$this->singpassSigningKey->toPublic()->jsonSerialize()],
+            ]),
+        ]);
+
+        $this->expectException(InvalidUserInfoException::class);
+
+        (new MyinfoConnector)->getVerifiedUserInfo($this->verifiedTokenSet());
+    }
+
     /**
      * @return array<string, string>
      */
@@ -262,5 +397,54 @@ class MyinfoConnectorTest extends TestCase
             $this->privateDpopJwkJson,
             CarbonImmutable::now()->timestamp,
         );
+    }
+
+    private function verifiedTokenSet(): VerifiedTokenSet
+    {
+        return new VerifiedTokenSet(
+            'verified-access-token',
+            ['sub' => 'verified-subject'],
+            'DPoP',
+            JWKFactory::createECKey('P-256', [
+                'alg' => 'ES256',
+                'use' => 'sig',
+            ]),
+        );
+    }
+
+    /**
+     * @return array{
+     *     person_info: array{name: array{value: string}},
+     *     iss: string,
+     *     iat: int,
+     *     sub: string,
+     *     aud: string
+     * }
+     */
+    private function validUserInfoClaims(): array
+    {
+        return [
+            'person_info' => ['name' => ['value' => 'VERIFIED USER']],
+            'iss' => 'https://stg-id.singpass.gov.sg/fapi',
+            'iat' => CarbonImmutable::now()->timestamp,
+            'sub' => 'verified-subject',
+            'aud' => 'test-client-id',
+        ];
+    }
+
+    private function accessTokenHash(string $accessToken): string
+    {
+        return rtrim(strtr(base64_encode(hash('sha256', $accessToken, true)), '+/', '-_'), '=');
+    }
+
+    private function decodeBase64Url(string $value): string
+    {
+        $padding = strlen($value) % 4;
+
+        if ($padding !== 0) {
+            $value .= str_repeat('=', 4 - $padding);
+        }
+
+        return base64_decode(strtr($value, '-_', '+/'), true) ?: '';
     }
 }

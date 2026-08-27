@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace Ziming\LaravelMyinfoSg\Data\MyinfoV6;
 
-use Closure;
 use InvalidArgumentException;
 use Jose\Component\Core\JWK;
 use LogicException;
 use SensitiveParameter;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\DPoPProofGenerator;
 
 final readonly class VerifiedTokenSet
 {
-    /** @var Closure(): JWK */
-    private Closure $dpopContext;
+    /** @var \Closure(): JWK */
+    private \Closure $dpopContext;
 
     /**
+     * ID-token claims are an extensible JSON object, so their values are
+     * necessarily heterogeneous even though stable claims have typed accessors.
+     *
      * @param array<string, mixed> $claims
      */
     public function __construct(
@@ -45,6 +48,8 @@ final readonly class VerifiedTokenSet
     }
 
     /**
+     * Provider-defined ID-token claim values remain heterogeneous by design.
+     *
      * @return array<string, mixed>
      */
     public function claims(): array
@@ -62,6 +67,26 @@ final readonly class VerifiedTokenSet
     public function tokenType(): string
     {
         return $this->tokenType;
+    }
+
+    /**
+     * Create the access-token-bound proof required for the UserInfo request while
+     * keeping the transaction's private DPoP key internal.
+     *
+     * @internal
+     * @throws \JsonException
+     */
+    public function createUserInfoDpopProof(string $userInfoEndpoint): string
+    {
+        $dpopPrivateJwk = ($this->dpopContext)();
+
+        return DPoPProofGenerator::make(
+            'GET',
+            $userInfoEndpoint,
+            $dpopPrivateJwk,
+            $dpopPrivateJwk->toPublic(),
+            $this->accessToken,
+        );
     }
 
     /**
