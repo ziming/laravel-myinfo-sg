@@ -52,11 +52,37 @@ $personData = $myinfoConnector
     ->json();
 ```
 
+### Optional V5 Routes
+
+The package ships an authorization redirect route and a public JWKS route for V5, mirroring the V6 ones.
+Both are opt-in and both are off by default. Enable whichever you want:
+
+```.dotenv
+MYINFO_V5_ENABLE_DEFAULT_AUTHORIZATION_REDIRECT_ROUTE=false
+MYINFO_V5_CALL_AUTHORIZATION_API_URI=/redirect-to-singpass-v5
+
+MYINFO_V5_ENABLE_DEFAULT_PUBLIC_JWKS_ENDPOINT_ROUTE=false
+MYINFO_V5_PUBLIC_JWKS_URI=/sp/v5/jwks
+```
+
+| Route name | Method | Default path | Controller |
+|---|---|---|---|
+| `myinfo-v5.singpass` | POST | `/redirect-to-singpass-v5` | `MyinfoV5\CallAuthorizationApiController` |
+| `myinfo-v5.public-jwks` | GET | `/sp/v5/jwks` | `MyinfoV5\PublicJwksController` |
+
+The redirect route runs behind the `web` middleware because `generateAuthorizationUrl()` puts the `state`
+and `code_verifier` in the session. Both the path and the controller are configurable, so you can point
+either key at your own controller instead.
+
 ### The JWKS Endpoint
 
-Either you make your own controller or you just generate it and paste it in Singpass API Portal.
+`MYINFO_V5_PUBLIC_JWKS` is served by the route above after `JwkSetValidator` re-validates it on **every**
+request. The set must contain at least one `sig` key and one `enc` key, every key must be EC with a unique
+`kid` on an allowed curve, and any key carrying a private `d` parameter is rejected. If validation fails the
+route throws a `RuntimeException` rather than serving a set it cannot vouch for.
 
-Maybe in future I provide better support for it but for now I am drowned in work in a very small team. Sorry.
+If you would rather not expose an endpoint at all, leave the route disabled and paste the generated public
+set into the Singpass API Portal instead.
 
 ## What about Myinfo v6 with FAPI 2.0?
 

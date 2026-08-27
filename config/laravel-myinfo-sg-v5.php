@@ -21,6 +21,14 @@ return [
     'state_session_key' => env('MYINFO_V5_STATE_SESSION_KEY', 'state'),
     'code_verifier_session_key' => env('MYINFO_V5_CODE_VERIFIER_SESSION_KEY', 'code_verifier'),
 
+    'enable_default_myinfo_authorization_redirect_route' => env('MYINFO_V5_ENABLE_DEFAULT_AUTHORIZATION_REDIRECT_ROUTE', false),
+    'call_authorization_api_uri' => env('MYINFO_V5_CALL_AUTHORIZATION_API_URI', '/redirect-to-singpass-v5'),
+    'call_authorization_api_controller' => env('MYINFO_V5_CALL_AUTHORIZATION_API_CONTROLLER', \Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV5\CallAuthorizationApiController::class),
+
+    'enable_default_public_jwks_endpoint_route' => env('MYINFO_V5_ENABLE_DEFAULT_PUBLIC_JWKS_ENDPOINT_ROUTE', false),
+    'public_jwks_uri' => env('MYINFO_V5_PUBLIC_JWKS_URI', '/sp/v5/jwks'),
+    'public_jwks_controller' => env('MYINFO_V5_PUBLIC_JWKS_CONTROLLER', \Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV5\PublicJwksController::class),
+
     'debug_mode' => env('MYINFO_V5_DEBUG_MODE', false),
 
 ];
