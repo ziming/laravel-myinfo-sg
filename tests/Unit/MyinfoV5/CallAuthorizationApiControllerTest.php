@@ -20,7 +20,7 @@ class CallAuthorizationApiControllerTest extends TestCase
         {
             public function generateAuthorizationUrl(?string $redirectUri = null): string
             {
-                return 'https://stg-id.singpass.gov.sg/authorize?code_challenge=abc&state=xyz';
+                return 'https://stg-id.singpass.gov.sg/fapi/authorize?request_uri=urn%3Aexample';
             }
         };
 
@@ -31,7 +31,7 @@ class CallAuthorizationApiControllerTest extends TestCase
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertSame(
-            'https://stg-id.singpass.gov.sg/authorize?code_challenge=abc&state=xyz',
+            'https://stg-id.singpass.gov.sg/fapi/authorize?request_uri=urn%3Aexample',
             $response->getTargetUrl()
         );
     }

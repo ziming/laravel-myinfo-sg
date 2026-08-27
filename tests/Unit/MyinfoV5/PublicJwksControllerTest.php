@@ -35,14 +35,18 @@ class PublicJwksControllerTest extends TestCase
         $this->assertSame($payload, $this->invokeController());
     }
 
-    public function test_it_reads_the_v5_config_and_not_the_v6_one(): void
+    public function test_it_accepts_signing_key_rotation_with_multiple_public_signing_keys(): void
     {
-        config()->set('laravel-myinfo-sg-v5.public_jwks', $this->publicJwks());
-        config()->set('laravel-myinfo-sg-v6.public_jwks', [
-            'keys' => [$this->publicKey('P-384', 'ES384', 'sig', 'v6-only')],
+        $payload = $this->publicJwks();
+        array_splice($payload['keys'], 1, 0, [
+            $this->publicKey('P-384', 'ES384', 'sig', 'sig-2'),
         ]);
+        config()->set('laravel-myinfo-sg-v5.public_jwks', $payload);
 
-        $this->assertSame(['sig-1', 'enc-1'], array_column($this->invokeController()['keys'], 'kid'));
+        $response = $this->invokeController();
+
+        $this->assertCount(3, $response['keys']);
+        $this->assertSame(['sig-1', 'sig-2', 'enc-1'], array_column($response['keys'], 'kid'));
     }
 
     public function test_it_fails_closed_for_invalid_public_key_configuration(): void
@@ -70,6 +74,10 @@ class PublicJwksControllerTest extends TestCase
         $invalidCurve = $valid;
         $invalidCurve['keys'][0]['crv'] = 'secp256k1';
         $cases[] = [$invalidCurve, 'crv', 'sig-1'];
+
+        $invalidEncryptionAlgorithm = $valid;
+        $invalidEncryptionAlgorithm['keys'][1]['alg'] = 'RSA-OAEP';
+        $cases[] = [$invalidEncryptionAlgorithm, 'alg', 'enc-1'];
 
         foreach ($cases as [$payload, $field, $kid]) {
             config()->set('laravel-myinfo-sg-v5.public_jwks', $payload);

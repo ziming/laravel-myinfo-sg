@@ -36,7 +36,6 @@ class LaravelMyinfoSgServiceProvider extends PackageServiceProvider
             ->hasConfigFile([
                 'laravel-myinfo-sg',
                 'laravel-myinfo-sg-v5',
-                'laravel-myinfo-sg-v6',
             ]);
 
         $package->hasRoute('web');

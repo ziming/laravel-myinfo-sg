@@ -6,8 +6,8 @@ namespace Ziming\LaravelMyinfoSg\Console\Commands;
 
 use Illuminate\Console\Command;
 use RuntimeException;
-use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetFileStore;
-use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetValidator;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\JwkSetFileStore;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\JwkSetValidator;
 
 final class ValidateJwkSetCommand extends Command
 {

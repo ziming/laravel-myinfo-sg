@@ -6,9 +6,9 @@ namespace Ziming\LaravelMyinfoSg\Console\Commands;
 
 use Illuminate\Console\Command;
 use Throwable;
-use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetFileStore;
-use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetGenerator;
-use Ziming\LaravelMyinfoSg\Services\MyinfoV6\SingpassAlgorithmProfile;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\JwkSetFileStore;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\JwkSetGenerator;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\SingpassAlgorithmProfile;
 
 class GenerateJwkSetCommand extends Command
 {
@@ -145,14 +145,14 @@ class GenerateJwkSetCommand extends Command
                 $this->info("Private JWKS written to [{$privateOutput}] with owner-only permissions.");
             } else {
                 $this->warn('Private key material follows. Do not publish it or expose it through a JWKS endpoint.');
-                $this->line("MYINFO_V6_PRIVATE_JWKS='{$fileStore->encode($privateJwks)}'");
+                $this->line("MYINFO_V5_PRIVATE_JWKS='{$fileStore->encode($privateJwks)}'");
             }
 
             if ($publicOutput !== null) {
                 $fileStore->write($publicOutput, $publicJwks, private: false, overwrite: $force);
                 $this->info("Public JWKS written to [{$publicOutput}].");
             } else {
-                $this->line("MYINFO_V6_PUBLIC_JWKS='{$fileStore->encode($publicJwks)}'");
+                $this->line("MYINFO_V5_PUBLIC_JWKS='{$fileStore->encode($publicJwks)}'");
             }
         } catch (Throwable $exception) {
             $this->error('Unable to write the generated JWKS: '.$exception->getMessage());
@@ -163,7 +163,7 @@ class GenerateJwkSetCommand extends Command
         $signingKey = $this->findKeyForUse($privateKeys, 'sig');
 
         if ($signingKey !== null) {
-            $this->line('MYINFO_V6_CHOSEN_JWKS_SIG_KID='.$signingKey['kid']);
+            $this->line('MYINFO_V5_CHOSEN_JWKS_SIG_KID='.$signingKey['kid']);
         }
 
         $this->displayRotationGuidance($keySelection);
@@ -276,7 +276,7 @@ class GenerateJwkSetCommand extends Command
             $this->line('Signing rotation:');
             $this->line('1. Add the new public signing key alongside the old public signing key.');
             $this->line('2. Wait at least one hour for the Singpass JWKS cache to expire.');
-            $this->line('3. Deploy the new private key and select its MYINFO_V6_CHOSEN_JWKS_SIG_KID.');
+            $this->line('3. Deploy the new private key and select its MYINFO_V5_CHOSEN_JWKS_SIG_KID.');
             $this->line('4. Remove the old public and private signing keys.');
 
             return;

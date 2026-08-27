@@ -11,31 +11,39 @@ use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\Serializer\CompactSerializer;
 use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
+use Saloon\Http\Connector;
 use Saloon\Traits\Body\HasFormBody;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\MyinfoConnector;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\MyinfoV5Request;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV5\ClientAssertionSigningKeyResolver;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV5\DPoPProofGenerator;
 
-class GetAccessTokenRequest extends MyinfoV5Request implements HasBody
+class PushedAuthorizationRequest extends MyinfoV5Request implements HasBody
 {
-    use HasFormBody;
-
     protected Method $method = Method::POST;
 
+    use HasFormBody;
+
     public function __construct(
-        private string $tokenEndpoint,
-        private string $code,
+        private string $parEndpoint,
         private string $issuer,
-        private string $redirectUri,
-        private string $codeVerifier,
         private JWK $dpopPrivateSigningJwk,
+        private string $state,
+        private string $nonce,
+        private string $codeChallenge,
+        private ?string $redirectUri = null,
     ) {
         parent::__construct();
     }
 
     public function resolveEndpoint(): string
     {
-        return $this->tokenEndpoint;
+        return $this->parEndpoint;
+    }
+
+    protected function resolveConnector(): Connector
+    {
+        return new MyinfoConnector;
     }
 
     /**
@@ -45,7 +53,7 @@ class GetAccessTokenRequest extends MyinfoV5Request implements HasBody
     {
         $dpopProof = DPoPProofGenerator::make(
             'POST',
-            $this->tokenEndpoint,
+            $this->parEndpoint,
             $this->dpopPrivateSigningJwk,
         );
 
@@ -71,7 +79,6 @@ class GetAccessTokenRequest extends MyinfoV5Request implements HasBody
             'iat' => $now->timestamp,
             'exp' => $now->addMinutes(2)->timestamp,
             'jti' => (string) Str::uuid(),
-            'code' => $this->code,
         ], JSON_THROW_ON_ERROR);
 
         $jws = $jwsBuilder->create()
@@ -87,11 +94,14 @@ class GetAccessTokenRequest extends MyinfoV5Request implements HasBody
         $clientAssertion = $compactSerializer->serialize($jws);
 
         return [
-            'grant_type' => 'authorization_code',
-            'code' => $this->code,
-            'redirect_uri' => $this->redirectUri,
+            'response_type' => 'code',
             'client_id' => $clientId,
-            'code_verifier' => $this->codeVerifier,
+            'redirect_uri' => $this->redirectUri ?? config('laravel-myinfo-sg-v5.redirect_uri'),
+            'scope' => config('laravel-myinfo-sg-v5.scopes'),
+            'state' => $this->state,
+            'nonce' => $this->nonce,
+            'code_challenge' => $this->codeChallenge,
+            'code_challenge_method' => 'S256',
             'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
             'client_assertion' => $clientAssertion,
         ];

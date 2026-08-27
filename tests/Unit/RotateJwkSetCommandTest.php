@@ -9,9 +9,9 @@ use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\Console\Tester\CommandTester;
 use Ziming\LaravelMyinfoSg\Console\Commands\RotateJwkSetCommand;
-use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetFileStore;
-use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetGenerator;
-use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetValidator;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\JwkSetFileStore;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\JwkSetGenerator;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\JwkSetValidator;
 use Ziming\LaravelMyinfoSg\Tests\TestCase;
 
 class RotateJwkSetCommandTest extends TestCase

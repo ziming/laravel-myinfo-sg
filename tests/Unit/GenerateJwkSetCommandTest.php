@@ -45,13 +45,13 @@ class GenerateJwkSetCommandTest extends TestCase
 
         $output = $this->normaliseOutput($tester->getDisplay());
         $privatePayload = $this->decodeJsonFile($privateOutput);
-        $publicPayload = $this->extractJsonEnvironmentValue($output, 'MYINFO_V6_PUBLIC_JWKS');
+        $publicPayload = $this->extractJsonEnvironmentValue($output, 'MYINFO_V5_PUBLIC_JWKS');
 
         $this->assertStringContainsString(
             "Private JWKS written to [{$privateOutput}] with owner-only permissions.",
             $output
         );
-        $this->assertStringNotContainsString('MYINFO_V6_PRIVATE_JWKS=', $output);
+        $this->assertStringNotContainsString('MYINFO_V5_PRIVATE_JWKS=', $output);
         $this->assertCount(2, $privatePayload['keys']);
         $this->assertCount(2, $publicPayload['keys']);
 
@@ -81,7 +81,7 @@ class GenerateJwkSetCommandTest extends TestCase
             $privateKeys['enc']['kid']
         );
         $this->assertStringContainsString(
-            'MYINFO_V6_CHOSEN_JWKS_SIG_KID='.$privateKeys['sig']['kid'],
+            'MYINFO_V5_CHOSEN_JWKS_SIG_KID='.$privateKeys['sig']['kid'],
             $output
         );
 
@@ -107,8 +107,8 @@ class GenerateJwkSetCommandTest extends TestCase
         $this->assertSame(0, $tester->getStatusCode());
 
         $output = $this->normaliseOutput($tester->getDisplay());
-        $privatePayload = $this->extractJsonEnvironmentValue($output, 'MYINFO_V6_PRIVATE_JWKS');
-        $publicPayload = $this->extractJsonEnvironmentValue($output, 'MYINFO_V6_PUBLIC_JWKS');
+        $privatePayload = $this->extractJsonEnvironmentValue($output, 'MYINFO_V5_PRIVATE_JWKS');
+        $publicPayload = $this->extractJsonEnvironmentValue($output, 'MYINFO_V5_PUBLIC_JWKS');
 
         $this->assertStringContainsString('Private key material follows.', $output);
         $this->assertArrayHasKey('d', $privatePayload['keys'][0]);
@@ -172,7 +172,7 @@ class GenerateJwkSetCommandTest extends TestCase
 
         $this->assertCount(1, $payload['keys']);
         $this->assertSame('enc', $payload['keys'][0]['use']);
-        $this->assertStringNotContainsString('MYINFO_V6_CHOSEN_JWKS_SIG_KID=', $output);
+        $this->assertStringNotContainsString('MYINFO_V5_CHOSEN_JWKS_SIG_KID=', $output);
         $this->assertStringContainsString('This is a JWKS fragment.', $output);
         $this->assertStringContainsString('Wait at least one hour', $output);
         $this->assertStringContainsString('Encryption rotation:', $output);
@@ -195,7 +195,7 @@ class GenerateJwkSetCommandTest extends TestCase
         $this->assertCount(2, $publicPayload['keys']);
         $this->assertArrayHasKey('d', $privatePayload['keys'][0]);
         $this->assertArrayNotHasKey('d', $publicPayload['keys'][0]);
-        $this->assertStringNotContainsString('MYINFO_V6_PUBLIC_JWKS=', $tester->getDisplay());
+        $this->assertStringNotContainsString('MYINFO_V5_PUBLIC_JWKS=', $tester->getDisplay());
         $this->assertStringContainsString("Public JWKS written to [{$publicOutput}].", $tester->getDisplay());
     }
 

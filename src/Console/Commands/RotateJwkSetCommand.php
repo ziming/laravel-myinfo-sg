@@ -8,8 +8,8 @@ use Illuminate\Console\Command;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
-use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetFileStore;
-use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetRotation;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\JwkSetFileStore;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\JwkSetRotation;
 
 final class RotateJwkSetCommand extends Command
 {

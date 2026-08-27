@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 use JsonException;
 use Symfony\Component\Console\Tester\CommandTester;
 use Ziming\LaravelMyinfoSg\Console\Commands\ValidateJwkSetCommand;
-use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetGenerator;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\JwkSetGenerator;
 use Ziming\LaravelMyinfoSg\Tests\TestCase;
 
 class ValidateJwkSetCommandTest extends TestCase

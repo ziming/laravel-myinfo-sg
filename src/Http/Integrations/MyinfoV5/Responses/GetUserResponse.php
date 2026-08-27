@@ -4,158 +4,213 @@ declare(strict_types=1);
 
 namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\Responses;
 
-use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\Requests\GetSingpassJwksRequest;
 use Illuminate\Support\Arr;
-use Jose\Component\Checker\AlgorithmChecker;
-use Jose\Component\Checker\AudienceChecker;
-use Jose\Component\Checker\ClaimCheckerManager;
-use Jose\Component\Checker\HeaderCheckerManager;
-use Jose\Component\Checker\ExpirationTimeChecker;
-use Jose\Component\Checker\IssuedAtChecker;
-use Jose\Component\Checker\IssuerChecker;
-use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Core\JWKSet;
-use Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM;
-use Jose\Component\Encryption\Algorithm\KeyEncryption\ECDHESA128KW;
-use Jose\Component\Encryption\Algorithm\KeyEncryption\ECDHESA192KW;
-use Jose\Component\Encryption\Algorithm\KeyEncryption\ECDHESA256KW;
-use Jose\Component\Encryption\JWEDecrypter;
-use Jose\Component\Encryption\JWELoader;
-use Jose\Component\Encryption\JWETokenSupport;
-use Jose\Component\Encryption\Serializer\CompactSerializer;
-use Jose\Component\Encryption\Serializer\JWESerializerManager;
-use Jose\Component\KeyManagement\JWKFactory;
-use Jose\Component\Signature\Algorithm\ES256;
-use Jose\Component\Signature\JWSLoader;
-use Jose\Component\Signature\JWSTokenSupport;
-use Jose\Component\Signature\JWSVerifier;
-use Jose\Component\Signature\Serializer\JWSSerializerManager;
+use RuntimeException;
 use Saloon\Http\Response;
-use Symfony\Component\Clock\Clock;
+use Throwable;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV5\InvalidUserInfoException;
+use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV5\SigningKeyRefreshRequiredException;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\MyinfoV5RequestSender;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\Requests\GetSingpassJwksRequest;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\Requests\GetSingpassOpenIdConfigurationRequest;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\JwkSetValidator;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV5\UserInfoProcessor;
 
 class GetUserResponse extends Response
 {
     /**
-     * @throws \JsonException
+     * Low-level compatibility decoder.
+     *
+     * This validates the signed UserInfo claim set, but cannot bind its subject to
+     * an ID token because getUser(string) does not carry a VerifiedTokenSet.
+     * The mixed parameter and return types must match Saloon Response::json(): a
+     * requested key may resolve to any JSON value or to the caller's default.
      */
-    public function json(string|int|null $key = null, mixed $default = null): ?array
+    public function json(string|int|null $key = null, mixed $default = null): mixed
     {
-        // 5 parts jwe token
-        $jweToken = $this->body();
+        $compactUserInfo = $this->validatedCompactBody();
+        $metadata = $this->discoveryMetadata();
+        $issuer = self::resolveExpectedIssuer($metadata);
+        $jwksUri = $metadata['jwks_uri'];
+        $clientId = config('laravel-myinfo-sg-v5.client_id');
 
-        $algorithmManager = new AlgorithmManager([
-            new A256GCM,
-            new ECDHESA128KW,
-            new ECDHESA192KW,
-            new ECDHESA256KW,
-        ]);
+        if (
+            $jwksUri === ''
+            || filter_var($jwksUri, FILTER_VALIDATE_URL) === false
+            || parse_url($jwksUri, PHP_URL_SCHEME) !== 'https'
+            || ! is_string($clientId)
+            || $clientId === ''
+        ) {
+            throw new InvalidUserInfoException('The UserInfo verification configuration is invalid.');
+        }
 
-        $jweSerializerManager = new JWESerializerManager([
-            new CompactSerializer,
-        ]);
+        try {
+            $privateDecryptionJwks = (new JwkSetValidator)->validatePrivateJwks(
+                config('laravel-myinfo-sg-v5.private_jwks'),
+            );
+        } catch (Throwable) {
+            throw new InvalidUserInfoException('The UserInfo decryption keys are invalid.');
+        }
 
-        $jwe = $jweSerializerManager->unserialize($jweToken);
+        $processor = new UserInfoProcessor;
+        $singpassPublicJwks = $this->fetchSingpassPublicJwks($jwksUri);
 
-        $jweDecrypter = new JWEDecrypter($algorithmManager);
+        try {
+            $userInfo = $processor->processUnbound(
+                $compactUserInfo,
+                $privateDecryptionJwks,
+                $singpassPublicJwks,
+                $issuer,
+                $clientId,
+            );
+        } catch (SigningKeyRefreshRequiredException) {
+            $refreshedJwks = $this->fetchSingpassPublicJwks($jwksUri, true);
 
-        $kid = $jwe->getSharedProtectedHeaderParameter('kid');
+            try {
+                $userInfo = $processor->processUnbound(
+                    $compactUserInfo,
+                    $privateDecryptionJwks,
+                    $refreshedJwks,
+                    $issuer,
+                    $clientId,
+                );
+            } catch (Throwable) {
+                throw new InvalidUserInfoException('The UserInfo response is invalid.');
+            }
+        }
 
-        // must it be private jwks, or can it be public?
-        $jwkSet = JWKFactory::createFromJsonObject(
-            config('laravel-myinfo-sg-v5.private_jwks')
+        return Arr::get($userInfo->claims(), $key, $default);
+    }
+
+    private function validatedCompactBody(): string
+    {
+        $body = $this->body();
+        $error = $this->decodeJsonObject($body);
+
+        if (
+            ! $this->successful()
+            || ($error !== null && array_key_exists('error', $error))
+            || trim($body) === ''
+        ) {
+            throw new InvalidUserInfoException('The authorization provider returned an invalid UserInfo response.');
+        }
+
+        return $body;
+    }
+
+    /** @return array{issuer?: string, jwks_uri: string} */
+    private function discoveryMetadata(): array
+    {
+        $response = (new MyinfoV5RequestSender)->send(
+            new GetSingpassOpenIdConfigurationRequest,
+            'discovery',
+            false,
         );
 
-        $jwk = $jwkSet->get($kid);
+        if (! $response->successful()) {
+            throw new InvalidUserInfoException('The Singpass discovery metadata could not be loaded.');
+        }
 
-        $headerCheckerManager = new HeaderCheckerManager([
-            new AlgorithmChecker([
-                'ECDH-ES+A256KW',
-                'ECDH-ES+A192KW',
-                'ECDH-ES+A128KW',
-            ]),
-        ], [
-            new JWETokenSupport,
-        ]);
+        $metadata = $this->decodeJsonObject($response->body());
 
-        $jweLoader = new JWELoader($jweSerializerManager, $jweDecrypter, $headerCheckerManager);
+        if ($metadata === null) {
+            throw new InvalidUserInfoException('The Singpass discovery metadata is invalid.');
+        }
 
-        $jwe = $jweLoader->loadAndDecryptWithKey($jweToken, $jwk, $recipient);
+        $jwksUri = $metadata['jwks_uri'] ?? null;
 
-        // this is a jws in jwe. this jws contains the myinfo data
-        // it is 5 parts
-        $jwsToken = $jwe->getPayload();
+        if (! is_string($jwksUri) || $jwksUri === '') {
+            throw new InvalidUserInfoException('The Singpass discovery metadata is invalid.');
+        }
 
-        $myinfoResponsePayload = $this->decodeMyinfoJwsPayload($jwsToken);
+        $validatedMetadata = ['jwks_uri' => $jwksUri];
+        $issuer = $metadata['issuer'] ?? null;
 
-        return Arr::get($myinfoResponsePayload, $key, $default);
+        if (is_string($issuer) && $issuer !== '') {
+            $validatedMetadata['issuer'] = $issuer;
+        }
+
+        return $validatedMetadata;
     }
 
     /**
-     * @throws \JsonException
+     * @param array{issuer?: string, jwks_uri: string} $configData
      */
-    private function decodeMyinfoJwsPayload(string $jwsToken): array
+    private static function resolveExpectedIssuer(array $configData): string
     {
-        $getSingpassJwksRequest = new GetSingpassJwksRequest;
+        if (isset($configData['issuer']) && $configData['issuer'] !== '') {
+            return $configData['issuer'];
+        }
 
-        $singpassJwksResponse = $getSingpassJwksRequest->send();
+        $issuerUri = config('laravel-myinfo-sg-v5.issuer_uri');
 
-        $singpassPublicJwks = JWKSet::createFromJson(
-            $singpassJwksResponse->body()
+        if (! is_string($issuerUri) || $issuerUri === '') {
+            throw new InvalidUserInfoException('The UserInfo issuer is not configured.');
+        }
+
+        return rtrim($issuerUri, '/').'/fapi';
+    }
+
+    private function fetchSingpassPublicJwks(string $jwksUri, bool $invalidateCache = false): JWKSet
+    {
+        $request = new GetSingpassJwksRequest($jwksUri);
+
+        if ($invalidateCache) {
+            $request->invalidateCache();
+        }
+
+        $response = (new MyinfoV5RequestSender)->send(
+            $request,
+            'jwks',
+            false,
         );
 
-        $algorithmManager = new AlgorithmManager([
-            new ES256,
-        ]);
+        if (! $response->successful()) {
+            throw new InvalidUserInfoException('The Singpass signing keys could not be loaded.');
+        }
 
-        $jwsVerifier = new JWSVerifier($algorithmManager);
+        try {
+            $data = $this->decodeJsonObject($response->body());
+            $keys = $data['keys'] ?? null;
 
-        $jwsSerializerManager = new JWSSerializerManager([
-            new \Jose\Component\Signature\Serializer\CompactSerializer,
-        ]);
+            if (! is_array($keys) || ! array_is_list($keys) || $keys === []) {
+                throw new RuntimeException;
+            }
 
-        $headerCheckerManager = new HeaderCheckerManager([
-            new AlgorithmChecker(['ES256']),
-        ], [
-            new JWSTokenSupport,
-        ]);
+            $seenKeyIds = [];
 
-        $kid = $jwsSerializerManager
-            ->unserialize($jwsToken)
-            ->getSignature(0)
-            ->getProtectedHeaderParameter('kid');
+            foreach ($keys as $key) {
+                $kid = is_array($key) ? ($key['kid'] ?? null) : null;
 
-        $currentSingpassJwk = $singpassPublicJwks->get($kid);
+                if (! is_string($kid) || $kid === '' || isset($seenKeyIds[$kid])) {
+                    throw new RuntimeException;
+                }
 
-        $jwsLoader = new JWSLoader(
-            $jwsSerializerManager,
-            $jwsVerifier,
-            $headerCheckerManager,
-        );
+                $seenKeyIds[$kid] = true;
+            }
 
-        $jws = $jwsLoader->loadAndVerifyWithKey($jwsToken, $currentSingpassJwk, $signature);
+            return JWKSet::createFromKeyData($data);
+        } catch (Throwable) {
+            throw new InvalidUserInfoException('The Singpass signing keys are invalid.');
+        }
+    }
 
-        $myinfoPersonPayload = json_decode(
-            $jws->getPayload(),
-            true
-        );
+    /**
+     * This is the raw JSON decoding boundary. Values remain mixed until the
+     * endpoint-specific validation above narrows the fields it consumes.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function decodeJsonObject(string $json): ?array
+    {
+        try {
+            $object = json_decode($json, false, 512, JSON_THROW_ON_ERROR);
+            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            return null;
+        }
 
-        $clock = new Clock;
-
-        $claimCheckerManager = new ClaimCheckerManager(
-            [
-                new AudienceChecker(
-                    config('laravel-myinfo-sg-v5.client_id')
-                ),
-                new IssuerChecker([
-                    config('laravel-myinfo-sg-v5.issuer_uri')
-                ]),
-                new IssuedAtChecker($clock, 2),
-                new ExpirationTimeChecker($clock, 2),
-            ]
-        );
-
-        $claimCheckerManager->check($myinfoPersonPayload);
-
-        return $myinfoPersonPayload;
+        return is_object($object) && is_array($data) ? $data : null;
     }
 }

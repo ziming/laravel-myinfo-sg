@@ -10,18 +10,24 @@ use Saloon\CachePlugin\Contracts\Driver;
 use Saloon\CachePlugin\Drivers\LaravelCacheDriver;
 use Saloon\CachePlugin\Traits\HasCaching;
 use Saloon\Enums\Method;
-use Saloon\Http\SoloRequest;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\MyinfoV5Request;
 
-class GetSingpassOpenIdConfigurationRequest extends SoloRequest implements Cacheable
+class GetSingpassOpenIdConfigurationRequest extends MyinfoV5Request implements Cacheable
 {
     use HasCaching;
 
     protected Method $method = Method::GET;
 
+    public function __construct()
+    {
+        parent::__construct();
+        $this->enableSafeReadRetries();
+    }
+
     public function resolveEndpoint(): string
     {
         $issuerUri = rtrim(config('laravel-myinfo-sg-v5.issuer_uri'), '/');
-        return $issuerUri.'/.well-known/openid-configuration';
+        return $issuerUri.'/fapi/.well-known/openid-configuration';
     }
 
     public function resolveCacheDriver(): Driver
