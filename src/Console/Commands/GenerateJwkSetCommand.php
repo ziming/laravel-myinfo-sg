@@ -5,13 +5,9 @@ declare(strict_types=1);
 namespace Ziming\LaravelMyinfoSg\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Filesystem\Filesystem;
-use Jose\Component\Core\JWK;
-use Jose\Component\Core\JWKSet;
-use Jose\Component\KeyManagement\JWKFactory;
-use JsonException;
-use RuntimeException;
 use Throwable;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetFileStore;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetGenerator;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\SingpassAlgorithmProfile;
 
 class GenerateJwkSetCommand extends Command
@@ -21,12 +17,6 @@ class GenerateJwkSetCommand extends Command
     private const string KEY_SELECTION_SIGNING = 'signing';
 
     private const string KEY_SELECTION_ENCRYPTION = 'encryption';
-
-    private const string DEFAULT_SIGNING_ALGORITHM = 'ES256';
-
-    private const string DEFAULT_ENCRYPTION_ALGORITHM = 'ECDH-ES+A128KW';
-
-    private const string DEFAULT_ENCRYPTION_CURVE = 'P-256';
 
     protected $signature = 'myinfo:generate-jwks
         {--keys=both : Keys to generate: both, signing, or encryption}
@@ -41,12 +31,12 @@ class GenerateJwkSetCommand extends Command
 
     protected $description = 'Generate private and public Singpass-compatible JSON Web Key Sets';
 
-    public function handle(Filesystem $files): int
+    public function handle(JwkSetGenerator $generator, JwkSetFileStore $fileStore): int
     {
         $keySelection = $this->stringOption('keys') ?? self::KEY_SELECTION_BOTH;
-        $signingAlgorithm = $this->stringOption('signing-alg') ?? self::DEFAULT_SIGNING_ALGORITHM;
-        $encryptionAlgorithm = $this->stringOption('encryption-alg') ?? self::DEFAULT_ENCRYPTION_ALGORITHM;
-        $encryptionCurve = $this->stringOption('encryption-curve') ?? self::DEFAULT_ENCRYPTION_CURVE;
+        $signingAlgorithm = $this->stringOption('signing-alg') ?? JwkSetGenerator::DEFAULT_SIGNING_ALGORITHM;
+        $encryptionAlgorithm = $this->stringOption('encryption-alg') ?? JwkSetGenerator::DEFAULT_ENCRYPTION_ALGORITHM;
+        $encryptionCurve = $this->stringOption('encryption-curve') ?? JwkSetGenerator::DEFAULT_ENCRYPTION_CURVE;
         $privateOutput = $this->stringOption('private-output');
         $publicOutput = $this->stringOption('public-output');
         $configure = $this->option('configure') === true;
@@ -107,24 +97,18 @@ class GenerateJwkSetCommand extends Command
             static fn (?string $path): bool => $path !== null
         );
 
-        foreach ($outputPaths as $outputPath) {
-            if (is_link($outputPath)) {
-                $this->error("Refusing to write JWKS to symbolic link [{$outputPath}].");
-
-                return self::INVALID;
+        try {
+            if ($privateOutput !== null && $publicOutput !== null) {
+                $fileStore->assertDistinctRotationPaths($privateOutput, $publicOutput, []);
             }
 
-            if ($files->isDirectory($outputPath)) {
-                $this->error("JWKS output path [{$outputPath}] is a directory.");
-
-                return self::INVALID;
+            foreach ($outputPaths as $outputPath) {
+                $fileStore->assertOutputPath($outputPath, $force, suggestForce: true);
             }
+        } catch (Throwable $exception) {
+            $this->error($exception->getMessage());
 
-            if ($files->exists($outputPath) && ! $force) {
-                $this->error("JWKS output file [{$outputPath}] already exists. Use --force to overwrite it.");
-
-                return self::INVALID;
-            }
+            return self::INVALID;
         }
 
         if ($configure) {
@@ -143,32 +127,32 @@ class GenerateJwkSetCommand extends Command
         }
 
         try {
-            $privateJwks = new JWKSet($this->generateKeys(
-                $keySelection,
-                $signingAlgorithm,
-                $encryptionAlgorithm,
-                $encryptionCurve
-            ));
-            $publicJwks = new JWKSet(array_map(
-                static fn (JWK $jwk): JWK => $jwk->toPublic(),
-                $privateJwks->all()
-            ));
-            $privateJson = $this->encodeJwks($privateJwks);
-            $publicJson = $this->encodeJwks($publicJwks);
+            $privateKeys = [];
+
+            if ($this->includesSigningKey($keySelection)) {
+                $privateKeys[] = $generator->signingKey($signingAlgorithm);
+            }
+
+            if ($this->includesEncryptionKey($keySelection)) {
+                $privateKeys[] = $generator->encryptionKey($encryptionAlgorithm, $encryptionCurve);
+            }
+
+            $privateJwks = ['keys' => $privateKeys];
+            $publicJwks = ['keys' => array_map($generator->publicKey(...), $privateKeys)];
 
             if ($privateOutput !== null) {
-                $this->writeJwks($files, $privateOutput, $privateJson, 0600, 0700);
+                $fileStore->write($privateOutput, $privateJwks, private: true, overwrite: $force);
                 $this->info("Private JWKS written to [{$privateOutput}] with owner-only permissions.");
             } else {
                 $this->warn('Private key material follows. Do not publish it or expose it through a JWKS endpoint.');
-                $this->line("MYINFO_V6_PRIVATE_JWKS='{$privateJson}'");
+                $this->line("MYINFO_V6_PRIVATE_JWKS='{$fileStore->encode($privateJwks)}'");
             }
 
             if ($publicOutput !== null) {
-                $this->writeJwks($files, $publicOutput, $publicJson, 0644, 0755);
+                $fileStore->write($publicOutput, $publicJwks, private: false, overwrite: $force);
                 $this->info("Public JWKS written to [{$publicOutput}].");
             } else {
-                $this->line("MYINFO_V6_PUBLIC_JWKS='{$publicJson}'");
+                $this->line("MYINFO_V6_PUBLIC_JWKS='{$fileStore->encode($publicJwks)}'");
             }
         } catch (Throwable $exception) {
             $this->error('Unable to write the generated JWKS: '.$exception->getMessage());
@@ -176,10 +160,10 @@ class GenerateJwkSetCommand extends Command
             return self::FAILURE;
         }
 
-        $signingKey = $this->findKeyForUse($privateJwks, 'sig');
+        $signingKey = $this->findKeyForUse($privateKeys, 'sig');
 
         if ($signingKey !== null) {
-            $this->line('MYINFO_V6_CHOSEN_JWKS_SIG_KID='.$signingKey->get('kid'));
+            $this->line('MYINFO_V6_CHOSEN_JWKS_SIG_KID='.$signingKey['kid']);
         }
 
         $this->displayRotationGuidance($keySelection);
@@ -197,50 +181,6 @@ class GenerateJwkSetCommand extends Command
             self::KEY_SELECTION_SIGNING,
             self::KEY_SELECTION_ENCRYPTION,
         ];
-    }
-
-    /**
-     * @return list<JWK>
-     */
-    private function generateKeys(
-        string $keySelection,
-        string $signingAlgorithm,
-        string $encryptionAlgorithm,
-        string $encryptionCurve
-    ): array {
-        $keys = [];
-
-        if ($this->includesSigningKey($keySelection)) {
-            $keys[] = $this->generateSigningKey($signingAlgorithm);
-        }
-
-        if ($this->includesEncryptionKey($keySelection)) {
-            $keys[] = $this->generateEncryptionKey($encryptionAlgorithm, $encryptionCurve);
-        }
-
-        return $keys;
-    }
-
-    private function generateSigningKey(string $algorithm): JWK
-    {
-        return $this->withKeyId(
-            JWKFactory::createECKey(SingpassAlgorithmProfile::clientAssertionCurve($algorithm), [
-                'alg' => $algorithm,
-                'use' => 'sig',
-            ]),
-            'sig'
-        );
-    }
-
-    private function generateEncryptionKey(string $algorithm, string $curve): JWK
-    {
-        return $this->withKeyId(
-            JWKFactory::createECKey($curve, [
-                'alg' => $algorithm,
-                'use' => 'enc',
-            ]),
-            'enc'
-        );
     }
 
     /**
@@ -302,46 +242,15 @@ class GenerateJwkSetCommand extends Command
         return in_array($keySelection, [self::KEY_SELECTION_BOTH, self::KEY_SELECTION_ENCRYPTION], true);
     }
 
-    private function withKeyId(JWK $jwk, string $prefix): JWK
-    {
-        return new JWK([
-            ...$jwk->all(),
-            'kid' => $prefix.'-'.$jwk->thumbprint('sha256'),
-        ]);
-    }
-
     /**
-     * @throws JsonException
+     * @param list<array<string, mixed>> $keys
+     * @return array<string, mixed>|null
      */
-    private function encodeJwks(JWKSet $jwkSet): string
+    private function findKeyForUse(array $keys, string $use): ?array
     {
-        return json_encode($jwkSet, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
-    }
-
-    private function writeJwks(
-        Filesystem $files,
-        string $path,
-        string $json,
-        int $fileMode,
-        int $directoryMode
-    ): void {
-        $files->ensureDirectoryExists(dirname($path), $directoryMode);
-        $files->replace($path, $json.PHP_EOL, $fileMode);
-
-        if (! $files->exists($path)) {
-            throw new RuntimeException("Unable to write JWKS output file [{$path}].");
-        }
-
-        if (DIRECTORY_SEPARATOR === '/' && $files->chmod($path, $fileMode) === false) {
-            throw new RuntimeException("Unable to secure JWKS output file [{$path}].");
-        }
-    }
-
-    private function findKeyForUse(JWKSet $jwkSet, string $use): ?JWK
-    {
-        foreach ($jwkSet->all() as $jwk) {
-            if ($jwk->has('use') && $jwk->get('use') === $use) {
-                return $jwk;
+        foreach ($keys as $key) {
+            if (($key['use'] ?? null) === $use) {
+                return $key;
             }
         }
 

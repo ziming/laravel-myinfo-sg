@@ -7,6 +7,8 @@ namespace Ziming\LaravelMyinfoSg;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Ziming\LaravelMyinfoSg\Console\Commands\GenerateJwkSetCommand;
+use Ziming\LaravelMyinfoSg\Console\Commands\RotateJwkSetCommand;
+use Ziming\LaravelMyinfoSg\Console\Commands\ValidateJwkSetCommand;
 
 class LaravelMyinfoSgServiceProvider extends PackageServiceProvider
 {
@@ -26,7 +28,11 @@ class LaravelMyinfoSgServiceProvider extends PackageServiceProvider
     {
         $package
             ->name('laravel-myinfo-sg')
-            ->hasCommands([GenerateJwkSetCommand::class])
+            ->hasCommands([
+                GenerateJwkSetCommand::class,
+                RotateJwkSetCommand::class,
+                ValidateJwkSetCommand::class,
+            ])
             ->hasConfigFile([
                 'laravel-myinfo-sg',
                 'laravel-myinfo-sg-v5',

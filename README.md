@@ -243,34 +243,95 @@ Private key material is never printed unless you explicitly use `--show-private`
 trusted local terminal and never in CI or captured logs. Existing files are not overwritten unless `--force`
 is supplied.
 
-#### Rotate JWKS
-
-Generate only the key needed for a rotation:
+Validate the complete private/public pair before deployment, optionally checking the configured signing
+key selection:
 
 ```bash
-php artisan myinfo:generate-jwks --keys=signing \
-    --private-output=storage/app/private/myinfo/new-signing.jwks.json
-
-php artisan myinfo:generate-jwks --keys=encryption \
-    --private-output=storage/app/private/myinfo/new-encryption.jwks.json
+php artisan myinfo:validate-jwks \
+    --private=storage/app/private/myinfo/private.jwks.json \
+    --public=storage/app/myinfo/public.jwks.json \
+    --signing-kid="$MYINFO_V6_CHOSEN_JWKS_SIG_KID"
 ```
 
-These commands produce JWKS fragments. Do not register a fragment by itself because Singpass requires the
-registered JWKS to contain at least one signing key and one encryption key.
+#### Rotate JWKS
 
-For signing-key rotation:
+Rotate signing and encryption keys at least annually. The guided rotation command always reads a complete,
+validated pair and creates new complete JWKS files at distinct paths; it never overwrites its inputs.
 
-1. Add the new public signing key alongside the existing public signing key.
-2. Wait at least one hour for the Singpass JWKS cache to expire.
-3. Add the new private signing key and change `MYINFO_V6_CHOSEN_JWKS_SIG_KID` to its `kid`.
-4. Remove the old public and private signing keys.
+These commands only produce local artifacts. They do not publish or deploy a JWKS, update `.env`, select a
+signing key, contact Singpass, or update a partner portal. Put private output into a secrets manager. Only the
+public output belongs at the registered public JWKS endpoint.
 
-For encryption-key rotation:
+For signing-key rotation, prepare an old+new signing-key overlap (replace the example `kid` values and paths):
 
-1. Add the new private encryption key while retaining the old private encryption key so either `kid` can be decrypted.
-2. Replace the old public encryption key with the new public encryption key.
-3. Wait at least one hour for the Singpass JWKS cache to expire.
-4. Remove the old private encryption key.
+```bash
+php artisan myinfo:rotate-jwks \
+    --stage=prepare \
+    --role=signing \
+    --replace-kid=sig-old-kid \
+    --private-input=storage/app/private/myinfo/private.jwks.json \
+    --public-input=storage/app/myinfo/public.jwks.json \
+    --private-output=storage/app/private/myinfo/signing-overlap.private.jwks.json \
+    --public-output=storage/app/myinfo/signing-overlap.public.jwks.json
+```
+
+Deploy the prepared private overlap to the secrets manager while keeping the old signing `kid` selected.
+Publish the prepared public set containing the old and new signing keys, wait at least one hour for the
+Singpass JWKS cache, and then change `MYINFO_V6_CHOSEN_JWKS_SIG_KID` to the new `kid` printed by the command.
+After the new signing key is active, retire the old key into another new pair:
+
+```bash
+php artisan myinfo:rotate-jwks \
+    --stage=finalize \
+    --role=signing \
+    --replace-kid=sig-old-kid \
+    --active-signing-kid=sig-new-kid \
+    --confirm-cache-expired \
+    --private-input=storage/app/private/myinfo/signing-overlap.private.jwks.json \
+    --public-input=storage/app/myinfo/signing-overlap.public.jwks.json \
+    --private-output=storage/app/private/myinfo/signing-final.private.jwks.json \
+    --public-output=storage/app/myinfo/signing-final.public.jwks.json
+```
+
+For encryption-key rotation, prepare a private old+new overlap and a public set containing only the new
+encryption key (unrelated keys are retained):
+
+```bash
+php artisan myinfo:rotate-jwks \
+    --stage=prepare \
+    --role=encryption \
+    --replace-kid=enc-old-kid \
+    --private-input=storage/app/private/myinfo/private.jwks.json \
+    --public-input=storage/app/myinfo/public.jwks.json \
+    --private-output=storage/app/private/myinfo/encryption-overlap.private.jwks.json \
+    --public-output=storage/app/myinfo/encryption-new.public.jwks.json
+```
+
+Deploy the private overlap first so responses encrypted to either key can be decrypted. Then publish the new
+public set, wait at least one hour, and finalize removal of the old private encryption key:
+
+```bash
+php artisan myinfo:rotate-jwks \
+    --stage=finalize \
+    --role=encryption \
+    --replace-kid=enc-old-kid \
+    --confirm-cache-expired \
+    --private-input=storage/app/private/myinfo/encryption-overlap.private.jwks.json \
+    --public-input=storage/app/myinfo/encryption-new.public.jwks.json \
+    --private-output=storage/app/private/myinfo/encryption-final.private.jwks.json \
+    --public-output=storage/app/myinfo/encryption-final.public.jwks.json
+```
+
+Without `--confirm-cache-expired`, finalize asks interactively whether the one-hour cache window elapsed.
+Non-interactive deployment pipelines must pass the flag explicitly; it records operator confirmation and
+does not attempt to infer deployment history.
+
+The required state transitions are:
+
+- Signing: publish old+new public keys, wait one hour, switch the signing `kid`, then retire the old public
+  and private key.
+- Encryption: retain old+new private keys, publish the new public key, wait one hour, then retire the old
+  private key.
 
 ### Redirect The User To Singpass
 
