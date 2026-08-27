@@ -6,6 +6,7 @@ namespace Ziming\LaravelMyinfoSg\Tests\Unit\MyinfoV6;
 
 use Jose\Component\Core\JWK;
 use Jose\Component\KeyManagement\JWKFactory;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\PushedAuthorizationRequest;
 use Ziming\LaravelMyinfoSg\Tests\TestCase;
@@ -14,8 +15,6 @@ class PushedAuthorizationRequestTest extends TestCase
 {
     private JWK $clientAssertionSigningJwk;
     private JWK $dpopPrivateJwk;
-    private JWK $dpopPublicJwk;
-
     public function setUp(): void
     {
         parent::setUp();
@@ -29,7 +28,6 @@ class PushedAuthorizationRequestTest extends TestCase
             'alg' => 'ES256',
             'use' => 'sig',
         ]);
-        $this->dpopPublicJwk = $this->dpopPrivateJwk->toPublic();
 
         config()->set('laravel-myinfo-sg-v6.client_id', 'test-client-id');
         config()->set('laravel-myinfo-sg-v6.redirect_uri', 'https://example.com/default-callback');
@@ -46,7 +44,6 @@ class PushedAuthorizationRequestTest extends TestCase
             'https://stg-id.singpass.gov.sg/fapi/par',
             'https://stg-id.singpass.gov.sg',
             $this->dpopPrivateJwk,
-            $this->dpopPublicJwk,
             'test-state',
             'test-nonce',
             'test-code-challenge',
@@ -77,6 +74,45 @@ class PushedAuthorizationRequestTest extends TestCase
         $this->assertIsInt($clientAssertionPayload['exp']);
     }
 
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function dpopProfiles(): iterable
+    {
+        yield 'ES256 / P-256' => ['ES256', 'P-256'];
+        yield 'ES384 / P-384' => ['ES384', 'P-384'];
+        yield 'ES512 / P-521' => ['ES512', 'P-521'];
+    }
+
+    #[DataProvider('dpopProfiles')]
+    public function test_par_proofs_use_each_profile_with_fresh_jtis(string $algorithm, string $curve): void
+    {
+        $privateJwk = JWKFactory::createECKey($curve, [
+            'alg' => $algorithm,
+            'use' => 'sig',
+        ]);
+        $request = new PushedAuthorizationRequest(
+            'https://stg-id.singpass.gov.sg/fapi/par',
+            'https://stg-id.singpass.gov.sg/fapi',
+            $privateJwk,
+            'test-state',
+            'test-nonce',
+            'test-code-challenge',
+        );
+
+        [$firstHeader, $firstPayload] = $this->decodeCompactJwt($request->defaultHeaders()['DPoP']);
+        [$secondHeader, $secondPayload] = $this->decodeCompactJwt($request->defaultHeaders()['DPoP']);
+
+        $this->assertSame($algorithm, $firstHeader['alg']);
+        $this->assertSame($curve, $firstHeader['jwk']['crv']);
+        $this->assertSame($firstHeader['jwk'], $secondHeader['jwk']);
+        $this->assertArrayNotHasKey('d', $firstHeader['jwk']);
+        $this->assertSame('POST', $firstPayload['htm']);
+        $this->assertSame('https://stg-id.singpass.gov.sg/fapi/par', $firstPayload['htu']);
+        $this->assertArrayNotHasKey('ath', $firstPayload);
+        $this->assertNotSame($firstPayload['jti'], $secondPayload['jti']);
+    }
+
     public function test_pushed_authorization_request_rejects_a_mismatched_signing_curve(): void
     {
         $mismatchedKey = new JWK([
@@ -96,7 +132,6 @@ class PushedAuthorizationRequestTest extends TestCase
             'https://stg-id.singpass.gov.sg/fapi/par',
             'https://stg-id.singpass.gov.sg',
             $this->dpopPrivateJwk,
-            $this->dpopPublicJwk,
             'test-state',
             'test-nonce',
             'test-code-challenge',

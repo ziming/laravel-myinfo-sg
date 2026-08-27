@@ -69,6 +69,12 @@ final readonly class VerifiedTokenSet
         return $this->tokenType;
     }
 
+    /** @internal */
+    public function dpopSigningAlgorithm(): string
+    {
+        return DPoPProofGenerator::signingAlgorithm(($this->dpopContext)());
+    }
+
     /**
      * Create the access-token-bound proof required for the UserInfo request while
      * keeping the transaction's private DPoP key internal.
@@ -84,8 +90,7 @@ final readonly class VerifiedTokenSet
             'GET',
             $userInfoEndpoint,
             $dpopPrivateJwk,
-            $dpopPrivateJwk->toPublic(),
-            $this->accessToken,
+            accessToken: $this->accessToken,
         );
     }
 

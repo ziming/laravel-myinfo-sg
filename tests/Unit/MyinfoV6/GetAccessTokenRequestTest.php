@@ -6,6 +6,7 @@ namespace Ziming\LaravelMyinfoSg\Tests\Unit\MyinfoV6;
 
 use Jose\Component\Core\JWK;
 use Jose\Component\KeyManagement\JWKFactory;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\GetAccessTokenRequest;
 use Ziming\LaravelMyinfoSg\Tests\TestCase;
 
@@ -13,8 +14,6 @@ class GetAccessTokenRequestTest extends TestCase
 {
     private JWK $clientAssertionSigningJwk;
     private JWK $dpopPrivateJwk;
-    private JWK $dpopPublicJwk;
-
     public function setUp(): void
     {
         parent::setUp();
@@ -28,7 +27,6 @@ class GetAccessTokenRequestTest extends TestCase
             'alg' => 'ES256',
             'use' => 'sig',
         ]);
-        $this->dpopPublicJwk = $this->dpopPrivateJwk->toPublic();
 
         config()->set('laravel-myinfo-sg-v6.client_id', 'test-client-id');
         config()->set('laravel-myinfo-sg-v6.chosen_jwks_sig_kid', 'client-assertion-sig');
@@ -47,7 +45,6 @@ class GetAccessTokenRequestTest extends TestCase
             'https://example.com/overridden-callback',
             'explicit-code-verifier',
             $this->dpopPrivateJwk,
-            $this->dpopPublicJwk
         );
 
         $body = $request->defaultBody();
@@ -76,7 +73,6 @@ class GetAccessTokenRequestTest extends TestCase
             'https://example.com/overridden-callback',
             'explicit-code-verifier',
             $this->dpopPrivateJwk,
-            $this->dpopPublicJwk
         );
 
         $headers = $request->defaultHeaders();
@@ -89,6 +85,45 @@ class GetAccessTokenRequestTest extends TestCase
             'application/x-www-form-urlencoded',
             $pendingRequest->headers()->get('Content-Type')
         );
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function dpopProfiles(): iterable
+    {
+        yield 'ES256 / P-256' => ['ES256', 'P-256'];
+        yield 'ES384 / P-384' => ['ES384', 'P-384'];
+        yield 'ES512 / P-521' => ['ES512', 'P-521'];
+    }
+
+    #[DataProvider('dpopProfiles')]
+    public function test_token_proofs_use_each_profile_with_fresh_jtis(string $algorithm, string $curve): void
+    {
+        $privateJwk = JWKFactory::createECKey($curve, [
+            'alg' => $algorithm,
+            'use' => 'sig',
+        ]);
+        $request = new GetAccessTokenRequest(
+            'https://stg-id.singpass.gov.sg/fapi/token',
+            'test-auth-code',
+            'https://stg-id.singpass.gov.sg/fapi',
+            'https://example.com/callback',
+            'explicit-code-verifier',
+            $privateJwk,
+        );
+
+        [$firstHeader, $firstPayload] = $this->decodeCompactJwt($request->defaultHeaders()['DPoP']);
+        [$secondHeader, $secondPayload] = $this->decodeCompactJwt($request->defaultHeaders()['DPoP']);
+
+        $this->assertSame($algorithm, $firstHeader['alg']);
+        $this->assertSame($curve, $firstHeader['jwk']['crv']);
+        $this->assertSame($firstHeader['jwk'], $secondHeader['jwk']);
+        $this->assertArrayNotHasKey('d', $firstHeader['jwk']);
+        $this->assertSame('POST', $firstPayload['htm']);
+        $this->assertSame('https://stg-id.singpass.gov.sg/fapi/token', $firstPayload['htu']);
+        $this->assertArrayNotHasKey('ath', $firstPayload);
+        $this->assertNotSame($firstPayload['jti'], $secondPayload['jti']);
     }
 
     public function test_access_token_request_uses_the_configured_signing_kid_and_algorithm(): void
@@ -117,7 +152,6 @@ class GetAccessTokenRequestTest extends TestCase
                 'https://example.com/overridden-callback',
                 'explicit-code-verifier',
                 $this->dpopPrivateJwk,
-                $this->dpopPublicJwk
             );
 
             $body = $request->defaultBody();

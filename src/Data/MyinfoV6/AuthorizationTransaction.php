@@ -10,6 +10,7 @@ use Jose\Component\KeyManagement\JWKFactory;
 use RuntimeException;
 use SensitiveParameter;
 use Throwable;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\SingpassAlgorithmProfile;
 
 final readonly class AuthorizationTransaction
 {
@@ -23,6 +24,7 @@ final readonly class AuthorizationTransaction
         public string $issuer,
         #[SensitiveParameter] string $dpopPrivateJwkJson,
         public int $createdAt,
+        public string $dpopSigningAlg = 'ES256',
     ) {
         if ($state === '' || $nonce === '' || $codeVerifier === '' || $redirectUri === '' || $issuer === '') {
             throw new InvalidArgumentException('Authorization transaction fields must not be empty.');
@@ -32,7 +34,7 @@ final readonly class AuthorizationTransaction
             throw new InvalidArgumentException('Authorization transaction creation time is invalid.');
         }
 
-        $this->dpopPrivateJwkJson = self::normalizePrivateJwk($dpopPrivateJwkJson);
+        $this->dpopPrivateJwkJson = self::normalizePrivateJwk($dpopPrivateJwkJson, $dpopSigningAlg);
     }
 
     public function dpopPrivateJwk(): JWK
@@ -54,7 +56,8 @@ final readonly class AuthorizationTransaction
      *     redirect_uri: string,
      *     issuer: string,
      *     dpop_private_jwk: string,
-     *     created_at: int
+     *     created_at: int,
+     *     dpop_signing_alg: string
      * }
      */
     public function toSessionRecord(): array
@@ -67,6 +70,7 @@ final readonly class AuthorizationTransaction
             'issuer' => $this->issuer,
             'dpop_private_jwk' => $this->dpopPrivateJwkJson,
             'created_at' => $this->createdAt,
+            'dpop_signing_alg' => $this->dpopSigningAlg,
         ];
     }
 
@@ -82,6 +86,7 @@ final readonly class AuthorizationTransaction
         $issuer = $record['issuer'] ?? null;
         $dpopPrivateJwk = $record['dpop_private_jwk'] ?? null;
         $createdAt = $record['created_at'] ?? null;
+        $dpopSigningAlg = $record['dpop_signing_alg'] ?? 'ES256';
 
         if (
             ! is_string($state)
@@ -91,6 +96,7 @@ final readonly class AuthorizationTransaction
             || ! is_string($issuer)
             || ! is_string($dpopPrivateJwk)
             || ! is_int($createdAt)
+            || ! is_string($dpopSigningAlg)
         ) {
             throw new InvalidArgumentException('Authorization transaction record is invalid.');
         }
@@ -103,18 +109,25 @@ final readonly class AuthorizationTransaction
             $issuer,
             $dpopPrivateJwk,
             $createdAt,
+            $dpopSigningAlg,
         );
     }
 
-    private static function normalizePrivateJwk(#[SensitiveParameter] string $jwkJson): string
+    private static function normalizePrivateJwk(
+        #[SensitiveParameter] string $jwkJson,
+        string $dpopSigningAlg,
+    ): string
     {
         try {
             $jwk = JWKFactory::createFromJsonObject($jwkJson);
+            $expectedCurve = SingpassAlgorithmProfile::dpopCurve($dpopSigningAlg);
 
             if (
                 ! $jwk instanceof JWK
                 || $jwk->get('kty') !== 'EC'
-                || ! in_array($jwk->get('crv'), ['P-256', 'P-384', 'P-521'], true)
+                || $jwk->get('use') !== 'sig'
+                || $jwk->get('alg') !== $dpopSigningAlg
+                || $jwk->get('crv') !== $expectedCurve
                 || ! self::hasNonEmptyString($jwk, 'x')
                 || ! self::hasNonEmptyString($jwk, 'y')
                 || ! self::hasNonEmptyString($jwk, 'd')

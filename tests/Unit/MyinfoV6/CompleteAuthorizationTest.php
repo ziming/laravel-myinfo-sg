@@ -350,6 +350,7 @@ class CompleteAuthorizationTest extends TestCase
             'token_endpoint' => self::ISSUER.'/token',
             'userinfo_endpoint' => self::ISSUER.'/userinfo',
             'jwks_uri' => 'https://stg-id.singpass.gov.sg/.well-known/keys',
+            'dpop_signing_alg_values_supported' => ['ES256', 'ES384', 'ES512'],
         ];
     }
 

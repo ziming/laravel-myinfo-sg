@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Str;
 use Jose\Component\Core\JWK;
 use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\Serializer\CompactSerializer;
@@ -16,7 +17,6 @@ use Saloon\Traits\Body\HasFormBody;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\MyinfoConnector;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\ClientAssertionSigningKeyResolver;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\DPoPProofGenerator;
-use Illuminate\Support\Str;
 
 class PushedAuthorizationRequest extends SoloRequest implements HasBody
 {
@@ -28,11 +28,10 @@ class PushedAuthorizationRequest extends SoloRequest implements HasBody
         private string $parEndpoint,
         private string $issuer,
         private JWK $dpopPrivateSigningJwk,
-        private JWK $dpopPublicSigningJwk,
         private string $state,
         private string $nonce,
         private string $codeChallenge,
-        private ?string $redirectUri = null
+        private ?string $redirectUri = null,
     ) {
     }
 
@@ -55,7 +54,6 @@ class PushedAuthorizationRequest extends SoloRequest implements HasBody
             'POST',
             $this->parEndpoint,
             $this->dpopPrivateSigningJwk,
-            $this->dpopPublicSigningJwk
         );
 
         return [

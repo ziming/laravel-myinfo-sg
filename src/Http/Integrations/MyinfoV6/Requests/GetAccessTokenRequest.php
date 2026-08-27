@@ -5,17 +5,16 @@ declare(strict_types=1);
 namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Str;
 use Jose\Component\Core\JWK;
 use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\Serializer\CompactSerializer;
 use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
-use Saloon\Http\Request;
 use Saloon\Http\SoloRequest;
 use Saloon\Traits\Body\HasFormBody;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\ClientAssertionSigningKeyResolver;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\DPoPProofGenerator;
-use Illuminate\Support\Str;
 
 class GetAccessTokenRequest extends SoloRequest implements HasBody
 {
@@ -30,9 +29,7 @@ class GetAccessTokenRequest extends SoloRequest implements HasBody
         private string $redirectUri,
         private string $codeVerifier,
         private JWK $dpopPrivateSigningJwk,
-        private JWK $dpopPublicSigningJwk
-    )
-    {
+    ) {
     }
 
     public function resolveEndpoint(): string
@@ -49,7 +46,6 @@ class GetAccessTokenRequest extends SoloRequest implements HasBody
             'POST',
             $this->tokenEndpoint,
             $this->dpopPrivateSigningJwk,
-            $this->dpopPublicSigningJwk
         );
 
         return [

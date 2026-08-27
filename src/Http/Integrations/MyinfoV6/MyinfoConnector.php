@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Jose\Component\Core\JWK;
 use Jose\Component\Core\JWKSet;
 use Jose\Component\KeyManagement\JWKFactory;
@@ -32,8 +33,10 @@ use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests\PushedAuthorizati
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Responses\GetUserResponse;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\AuthorizationCallbackValidator;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\AuthorizationTransactionStore;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\DPoPProofGenerator;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\IdTokenProcessor;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\JwkSetValidator;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\SingpassAlgorithmProfile;
 use Ziming\LaravelMyinfoSg\Services\MyinfoV6\UserInfoProcessor;
 
 class MyinfoConnector extends Connector
@@ -43,7 +46,8 @@ class MyinfoConnector extends Connector
      */
     public function generateAuthorizationUrl(?string $redirectUri = null): string
     {
-        $metadata = $this->getValidatedDiscoveryMetadata();
+        $dpopSigningAlg = $this->configuredDpopSigningAlgorithm();
+        $metadata = $this->getValidatedDiscoveryMetadata($dpopSigningAlg);
         $effectiveRedirectUri = $redirectUri ?? config('laravel-myinfo-sg-v6.redirect_uri');
 
         if (! is_string($effectiveRedirectUri) || $effectiveRedirectUri === '') {
@@ -56,7 +60,7 @@ class MyinfoConnector extends Connector
 
         $state = Str::random(40);
         $nonce = (string) Str::uuid();
-        [$dpopPrivateJwk, $dpopPublicJwk] = $this->createDpopKeyPair();
+        $dpopPrivateJwk = $this->createDpopPrivateKey($dpopSigningAlg);
         $transaction = new AuthorizationTransaction(
             $state,
             $nonce,
@@ -65,6 +69,7 @@ class MyinfoConnector extends Connector
             $metadata['issuer'],
             json_encode($dpopPrivateJwk, JSON_THROW_ON_ERROR),
             CarbonImmutable::now()->timestamp,
+            $dpopSigningAlg,
         );
 
         // Call PAR endpoint
@@ -72,7 +77,6 @@ class MyinfoConnector extends Connector
             $metadata['pushed_authorization_request_endpoint'],
             $transaction->issuer,
             $dpopPrivateJwk,
-            $dpopPublicJwk,
             $transaction->state,
             $transaction->nonce,
             $codeChallenge,
@@ -114,13 +118,13 @@ class MyinfoConnector extends Connector
      */
     public function getAccessToken(string $code): array
     {
-        $metadata = $this->getValidatedDiscoveryMetadata();
         $latestState = session()->pull(config('laravel-myinfo-sg-v6.state_session_key'));
 
         if (is_string($latestState) && $latestState !== '') {
             $transaction = $this->transactionStore()->pull($latestState);
 
             if ($transaction !== null) {
+                $metadata = $this->getValidatedDiscoveryMetadata($transaction->dpopSigningAlg);
                 $dpopPrivateJwk = $transaction->dpopPrivateJwk();
                 $response = $this->sendAccessTokenRequest(
                     $metadata['token_endpoint'],
@@ -142,7 +146,10 @@ class MyinfoConnector extends Connector
             }
         }
 
-        [$dpopPrivateJwk, $dpopPublicJwk] = $this->getStoredDpopKeyPair();
+        [$dpopPrivateJwk] = $this->getStoredDpopKeyPair();
+        $metadata = $this->getValidatedDiscoveryMetadata(
+            DPoPProofGenerator::signingAlgorithm($dpopPrivateJwk),
+        );
         $redirectUri = session(
             config('laravel-myinfo-sg-v6.redirect_uri_session_key'),
             config('laravel-myinfo-sg-v6.redirect_uri')
@@ -164,7 +171,6 @@ class MyinfoConnector extends Connector
             $redirectUri,
             $codeVerifier,
             $dpopPrivateJwk,
-            $dpopPublicJwk,
         );
         $response = $getAccessTokenRequest->send();
 
@@ -184,7 +190,7 @@ class MyinfoConnector extends Connector
     public function completeAuthorization(Request $request): VerifiedTokenSet
     {
         $callback = $this->validateAuthorizationCallback($request);
-        $metadata = $this->getValidatedDiscoveryMetadata();
+        $metadata = $this->getValidatedDiscoveryMetadata($callback->transaction->dpopSigningAlg);
 
         if (! hash_equals($callback->transaction->issuer, $metadata['issuer'])) {
             throw new RuntimeException('The discovery issuer changed during authorization.');
@@ -243,7 +249,7 @@ class MyinfoConnector extends Connector
      */
     public function getAccessTokenFromValidatedCallback(ValidatedAuthorizationCallback $callback): array
     {
-        $metadata = $this->getValidatedDiscoveryMetadata();
+        $metadata = $this->getValidatedDiscoveryMetadata($callback->transaction->dpopSigningAlg);
 
         if (! hash_equals($callback->transaction->issuer, $metadata['issuer'])) {
             throw new RuntimeException('The discovery issuer changed during authorization.');
@@ -270,14 +276,15 @@ class MyinfoConnector extends Connector
      */
     public function getUser(string $accessToken): GetUserResponse
     {
-        $metadata = $this->getValidatedDiscoveryMetadata();
-        [$dpopPrivateJwk, $dpopPublicJwk] = $this->getStoredDpopKeyPair();
+        [$dpopPrivateJwk] = $this->getStoredDpopKeyPair();
+        $metadata = $this->getValidatedDiscoveryMetadata(
+            DPoPProofGenerator::signingAlgorithm($dpopPrivateJwk),
+        );
 
         $getUserRequest = new GetUserRequest(
             $metadata['userinfo_endpoint'],
             $accessToken,
             $dpopPrivateJwk,
-            $dpopPublicJwk
         );
 
         /** @var GetUserResponse $response */
@@ -291,7 +298,7 @@ class MyinfoConnector extends Connector
      */
     public function getVerifiedUserInfo(VerifiedTokenSet $tokenSet): VerifiedUserInfo
     {
-        $metadata = $this->getValidatedDiscoveryMetadata();
+        $metadata = $this->getValidatedDiscoveryMetadata($tokenSet->dpopSigningAlgorithm());
         $clientId = config('laravel-myinfo-sg-v6.client_id');
 
         if (! is_string($clientId) || $clientId === '') {
@@ -330,17 +337,12 @@ class MyinfoConnector extends Connector
         return config('laravel-myinfo-sg-v6.issuer_uri');
     }
 
-    /**
-     * @return array{JWK, JWK}
-     */
-    private function createDpopKeyPair(): array
+    private function createDpopPrivateKey(string $algorithm): JWK
     {
-        $privateJwk = JWKFactory::createECKey('P-256', [
-            'alg' => 'ES256',
+        return JWKFactory::createECKey(SingpassAlgorithmProfile::dpopCurve($algorithm), [
+            'alg' => $algorithm,
             'use' => 'sig',
         ]);
-
-        return [$privateJwk, $privateJwk->toPublic()];
     }
 
     /**
@@ -362,6 +364,8 @@ class MyinfoConnector extends Connector
             throw new \RuntimeException('Expected a single DPoP JWK in session');
         }
 
+        DPoPProofGenerator::signingAlgorithm($privateJwk);
+
         return [$privateJwk, $privateJwk->toPublic()];
     }
 
@@ -375,8 +379,9 @@ class MyinfoConnector extends Connector
      *     jwks_uri: string
      * }
      */
-    private function getValidatedDiscoveryMetadata(): array
+    private function getValidatedDiscoveryMetadata(string $dpopSigningAlg): array
     {
+        $this->assertLocallySupportedDpopAlgorithm($dpopSigningAlg);
         $response = (new GetSingpassOpenIdConfigurationRequest)->send();
         $metadata = $response->json();
 
@@ -391,6 +396,15 @@ class MyinfoConnector extends Connector
 
         if (! hash_equals($expectedIssuer, $issuer)) {
             throw new RuntimeException('Singpass discovery issuer does not match the configured issuer.');
+        }
+
+        $advertisedDpopAlgorithms = $metadata['dpop_signing_alg_values_supported'] ?? null;
+
+        if (
+            ! is_array($advertisedDpopAlgorithms)
+            || ! in_array($dpopSigningAlg, $advertisedDpopAlgorithms, true)
+        ) {
+            throw new RuntimeException('Singpass discovery is incompatible with the selected DPoP signing algorithm.');
         }
 
         return [
@@ -433,6 +447,28 @@ class MyinfoConnector extends Connector
         return new AuthorizationTransactionStore($session);
     }
 
+    private function configuredDpopSigningAlgorithm(): string
+    {
+        $algorithm = config('laravel-myinfo-sg-v6.dpop_signing_alg', 'ES256');
+
+        if (! is_string($algorithm) || $algorithm === '') {
+            throw new RuntimeException('MyInfo V6 DPoP signing algorithm is invalid.');
+        }
+
+        $this->assertLocallySupportedDpopAlgorithm($algorithm);
+
+        return $algorithm;
+    }
+
+    private function assertLocallySupportedDpopAlgorithm(string $algorithm): void
+    {
+        try {
+            SingpassAlgorithmProfile::dpopCurve($algorithm);
+        } catch (InvalidArgumentException) {
+            throw new RuntimeException('MyInfo V6 DPoP signing algorithm is invalid.');
+        }
+    }
+
     /**
      * @return array<string, mixed>
      * @throws \JsonException
@@ -472,7 +508,6 @@ class MyinfoConnector extends Connector
             $redirectUri,
             $codeVerifier,
             $dpopPrivateJwk,
-            $dpopPrivateJwk->toPublic(),
         );
 
         return $request->send();

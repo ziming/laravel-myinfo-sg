@@ -151,6 +151,7 @@ class GetUserResponseTest extends TestCase
             'token_endpoint' => 'https://stg-id.singpass.gov.sg/fapi/token',
             'userinfo_endpoint' => 'https://stg-id.singpass.gov.sg/fapi/userinfo',
             'jwks_uri' => 'https://stg-id.singpass.gov.sg/.well-known/keys',
+            'dpop_signing_alg_values_supported' => ['ES256', 'ES384', 'ES512'],
         ];
     }
 }

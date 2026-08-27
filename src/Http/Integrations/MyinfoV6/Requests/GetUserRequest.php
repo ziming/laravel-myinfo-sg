@@ -7,10 +7,9 @@ namespace Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Requests;
 use InvalidArgumentException;
 use Jose\Component\Core\JWK;
 use Saloon\Enums\Method;
-use Saloon\Http\Request;
 use Saloon\Http\SoloRequest;
-use Ziming\LaravelMyinfoSg\Services\MyinfoV6\DPoPProofGenerator;
 use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV6\Responses\GetUserResponse;
+use Ziming\LaravelMyinfoSg\Services\MyinfoV6\DPoPProofGenerator;
 
 class GetUserRequest extends SoloRequest
 {
@@ -20,34 +19,33 @@ class GetUserRequest extends SoloRequest
 
     private ?JWK $dpopPrivateSigningJwk;
 
-    private ?JWK $dpopPublicSigningJwk;
-
     private ?string $dpopProof;
 
     public function __construct(
         private string $userInfoEndpoint,
         private string $accessToken,
         JWK|string $dpopPrivateSigningJwk,
-        ?JWK $dpopPublicSigningJwk = null,
+        ?JWK $deprecatedPublicSigningJwk = null,
     ) {
         if (is_string($dpopPrivateSigningJwk)) {
-            if (trim($dpopPrivateSigningJwk) === '' || $dpopPublicSigningJwk !== null) {
+            if (trim($dpopPrivateSigningJwk) === '' || $deprecatedPublicSigningJwk !== null) {
                 throw new InvalidArgumentException('The precomputed DPoP proof is invalid.');
             }
 
             $this->dpopPrivateSigningJwk = null;
-            $this->dpopPublicSigningJwk = null;
             $this->dpopProof = $dpopPrivateSigningJwk;
 
             return;
         }
 
-        if (! $dpopPublicSigningJwk instanceof JWK) {
-            throw new InvalidArgumentException('The DPoP key pair is incomplete.');
+        if (
+            $deprecatedPublicSigningJwk !== null
+            && $deprecatedPublicSigningJwk->all() != $dpopPrivateSigningJwk->toPublic()->all()
+        ) {
+            throw new InvalidArgumentException('The DPoP public key does not match the private key.');
         }
 
         $this->dpopPrivateSigningJwk = $dpopPrivateSigningJwk;
-        $this->dpopPublicSigningJwk = $dpopPublicSigningJwk;
         $this->dpopProof = null;
     }
 
@@ -64,10 +62,7 @@ class GetUserRequest extends SoloRequest
         $dpopProof = $this->dpopProof;
 
         if ($dpopProof === null) {
-            if (
-                ! $this->dpopPrivateSigningJwk instanceof JWK
-                || ! $this->dpopPublicSigningJwk instanceof JWK
-            ) {
+            if (! $this->dpopPrivateSigningJwk instanceof JWK) {
                 throw new InvalidArgumentException('The DPoP request context is invalid.');
             }
 
@@ -75,8 +70,7 @@ class GetUserRequest extends SoloRequest
                 'GET',
                 $this->userInfoEndpoint,
                 $this->dpopPrivateSigningJwk,
-                $this->dpopPublicSigningJwk,
-                $this->accessToken,
+                accessToken: $this->accessToken,
             );
         }
 

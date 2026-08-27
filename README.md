@@ -108,6 +108,9 @@ MYINFO_V6_PUBLIC_JWKS='{"keys":[...]}'
 # Select the signing key from the private JWKS used for client assertions
 MYINFO_V6_CHOSEN_JWKS_SIG_KID=sig-your-key-id
 
+# Select the ephemeral DPoP signing profile (ES256, ES384, or ES512; defaults to ES256)
+MYINFO_V6_DPOP_SIGNING_ALG=ES256
+
 # Optional package routes
 MYINFO_V6_ENABLE_DEFAULT_AUTHORIZATION_REDIRECT_ROUTE=false
 MYINFO_V6_CALL_AUTHORIZATION_API_URI=/redirect-to-singpass-v6
@@ -159,6 +162,26 @@ Supported signing combinations:
 Supported encryption algorithms are `ECDH-ES+A128KW` (default), `ECDH-ES+A192KW`, and
 `ECDH-ES+A256KW`. Each can be used with `P-256` (default), `P-384`, or `P-521`, as permitted by the
 [Singpass JWKS requirements](https://docs.developer.singpass.gov.sg/docs/technical-specifications/technical-concepts/json-web-key-sets-jwks).
+
+#### Select the DPoP signing profile
+
+`MYINFO_V6_DPOP_SIGNING_ALG` independently selects the algorithm for the ephemeral DPoP key. It does
+not select the registered client-assertion key controlled by `MYINFO_V6_CHOSEN_JWKS_SIG_KID`.
+
+| DPoP algorithm | Required curve |
+| --- | --- |
+| `ES256` (default) | `P-256` |
+| `ES384` | `P-384` |
+| `ES512` | `P-521` |
+
+The algorithm determines the curve; there is no separate DPoP curve setting. Discovery metadata may
+reject the selected local profile but cannot enable any profile outside this table.
+
+The package generates a fresh ephemeral DPoP private key for every authorization transaction. That exact
+key and algorithm are retained for the transaction and reused across PAR, token exchange, and UserInfo,
+even if configuration changes after PAR. Every HTTP request still receives a newly signed proof with a
+fresh `jti`; only the UserInfo proof includes the access-token hash in `ath`. DPoP keys are never reused
+between transactions.
 
 When working directly in this package repository, replace `php artisan` with `vendor/bin/testbench`.
 
@@ -330,7 +353,8 @@ Route::get('/sp/v6/jwks', PublicJwksController::class)
 - `MYINFO_V6_PRIVATE_JWKS` should be the full private JWKS.
 - `MYINFO_V6_PUBLIC_JWKS` should be the matching public JWKS registered with Singpass.
 - `MYINFO_V6_CHOSEN_JWKS_SIG_KID` should point at the signing key used for client assertions.
-- The package generates a fresh ephemeral DPoP key per auth session automatically. You do not configure the DPoP key in `.env`.
+- The package generates a fresh ephemeral DPoP key per authorization transaction. You configure only its
+  algorithm with `MYINFO_V6_DPOP_SIGNING_ALG`, never the key material itself.
 - Authorization transactions are stored in the user's Laravel session under `transaction_session_key`
   and expire after `transaction_ttl_seconds` (600 seconds by default).
 

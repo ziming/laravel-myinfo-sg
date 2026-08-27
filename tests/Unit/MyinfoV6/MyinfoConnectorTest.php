@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Jose\Component\Core\JWK;
 use Jose\Component\KeyManagement\JWKFactory;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
@@ -124,6 +125,7 @@ class MyinfoConnectorTest extends TestCase
 
     public function test_generate_authorization_url_stores_concurrent_transactions_from_validated_discovery(): void
     {
+        $this->assertSame('ES256', config('laravel-myinfo-sg-v6.dpop_signing_alg'));
         $mockClient = MockClient::global([
             GetSingpassOpenIdConfigurationRequest::class => MockResponse::make($this->metadata()),
             PushedAuthorizationRequest::class => MockResponse::make(['request_uri' => 'urn:example:par-request']),
@@ -153,8 +155,153 @@ class MyinfoConnectorTest extends TestCase
             ['https://stg-id.singpass.gov.sg/fapi'],
             array_values(array_unique(array_column($records, 'issuer'))),
         );
+        $this->assertSame(['ES256'], array_values(array_unique(array_column($records, 'dpop_signing_alg'))));
+        $firstKey = JWKFactory::createFromJsonObject($records[array_key_first($records)]['dpop_private_jwk']);
+        $lastKey = JWKFactory::createFromJsonObject($records[array_key_last($records)]['dpop_private_jwk']);
+        $this->assertInstanceOf(JWK::class, $firstKey);
+        $this->assertInstanceOf(JWK::class, $lastKey);
+        $this->assertNotSame($firstKey->thumbprint('sha256'), $lastKey->thumbprint('sha256'));
         $this->assertNull(session(config('laravel-myinfo-sg-v6.dpop_private_jwk_session_key')));
         $mockClient->assertSentCount(2, PushedAuthorizationRequest::class);
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function dpopProfiles(): iterable
+    {
+        yield 'ES256 / P-256' => ['ES256', 'P-256', 'ES384'];
+        yield 'ES384 / P-384' => ['ES384', 'P-384', 'ES512'];
+        yield 'ES512 / P-521' => ['ES512', 'P-521', 'ES256'];
+    }
+
+    #[DataProvider('dpopProfiles')]
+    public function test_each_configured_profile_reuses_one_transaction_key_with_fresh_proofs(
+        string $algorithm,
+        string $curve,
+        string $changedConfiguration,
+    ): void {
+        config()->set('laravel-myinfo-sg-v6.dpop_signing_alg', $algorithm);
+        $mockClient = MockClient::global([
+            GetSingpassOpenIdConfigurationRequest::class => MockResponse::make($this->metadata()),
+            PushedAuthorizationRequest::class => MockResponse::make(['request_uri' => 'urn:example:profile-par']),
+            GetAccessTokenRequest::class => MockResponse::make(['access_token' => 'profile-access-token']),
+            GetUserRequest::class => MockResponse::make('userinfo-response'),
+        ]);
+        $connector = new MyinfoConnector;
+
+        $connector->generateAuthorizationUrl();
+        config()->set('laravel-myinfo-sg-v6.dpop_signing_alg', $changedConfiguration);
+        $connector->getAccessToken('profile-code');
+        $connector->getUser('profile-access-token');
+
+        $proofs = [];
+
+        foreach ($mockClient->getRecordedResponses() as $response) {
+            $request = $response->getPendingRequest()->getRequest();
+            $name = match (true) {
+                $request instanceof PushedAuthorizationRequest => 'par',
+                $request instanceof GetAccessTokenRequest => 'token',
+                $request instanceof GetUserRequest => 'userinfo',
+                default => null,
+            };
+
+            if ($name === null) {
+                continue;
+            }
+
+            $proof = $response->getPendingRequest()->headers()->get('DPoP');
+            $this->assertIsString($proof);
+            $proofs[$name] = $this->decodeDpopProof($proof);
+        }
+
+        $this->assertSame(['par', 'token', 'userinfo'], array_keys($proofs));
+        $thumbprints = array_map(
+            static fn (array $proof): string => (new JWK($proof['header']['jwk']))->thumbprint('sha256'),
+            $proofs,
+        );
+        $this->assertCount(1, array_unique($thumbprints));
+        $this->assertCount(3, array_unique(array_column(array_column($proofs, 'payload'), 'jti')));
+
+        foreach ($proofs as $proof) {
+            $this->assertSame($algorithm, $proof['header']['alg']);
+            $this->assertSame($curve, $proof['header']['jwk']['crv']);
+            $this->assertArrayNotHasKey('d', $proof['header']['jwk']);
+        }
+
+        $this->assertSame('POST', $proofs['par']['payload']['htm']);
+        $this->assertSame('https://stg-id.singpass.gov.sg/fapi/par', $proofs['par']['payload']['htu']);
+        $this->assertArrayNotHasKey('ath', $proofs['par']['payload']);
+        $this->assertSame('POST', $proofs['token']['payload']['htm']);
+        $this->assertSame('https://stg-id.singpass.gov.sg/fapi/token', $proofs['token']['payload']['htu']);
+        $this->assertArrayNotHasKey('ath', $proofs['token']['payload']);
+        $this->assertSame('GET', $proofs['userinfo']['payload']['htm']);
+        $this->assertSame('https://stg-id.singpass.gov.sg/fapi/userinfo', $proofs['userinfo']['payload']['htu']);
+        $this->assertSame(
+            $this->accessTokenHash('profile-access-token'),
+            $proofs['userinfo']['payload']['ath'],
+        );
+    }
+
+    public function test_invalid_configured_dpop_algorithm_fails_before_discovery_or_par(): void
+    {
+        config()->set('laravel-myinfo-sg-v6.dpop_signing_alg', 'RS256');
+        $metadata = $this->metadata();
+        $metadata['dpop_signing_alg_values_supported'] = ['RS256'];
+        $mockClient = MockClient::global([
+            GetSingpassOpenIdConfigurationRequest::class => MockResponse::make($metadata),
+            PushedAuthorizationRequest::class => MockResponse::make(['request_uri' => 'must-not-be-used']),
+        ]);
+
+        try {
+            (new MyinfoConnector)->generateAuthorizationUrl();
+            $this->fail('Expected the local DPoP policy to reject the algorithm.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('MyInfo V6 DPoP signing algorithm is invalid.', $exception->getMessage());
+        }
+
+        $mockClient->assertSentCount(0, GetSingpassOpenIdConfigurationRequest::class);
+        $mockClient->assertSentCount(0, PushedAuthorizationRequest::class);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function incompatibleDpopMetadata(): iterable
+    {
+        yield 'missing field' => [[]];
+        yield 'selected algorithm excluded' => [['dpop_signing_alg_values_supported' => ['ES256']]];
+    }
+
+    #[DataProvider('incompatibleDpopMetadata')]
+    public function test_discovery_must_advertise_the_selected_dpop_algorithm(array $override): void
+    {
+        config()->set('laravel-myinfo-sg-v6.dpop_signing_alg', 'ES384');
+        $metadata = $this->metadata();
+
+        if ($override === []) {
+            unset($metadata['dpop_signing_alg_values_supported']);
+        } else {
+            $metadata = [...$metadata, ...$override];
+        }
+
+        $mockClient = MockClient::global([
+            GetSingpassOpenIdConfigurationRequest::class => MockResponse::make($metadata),
+            PushedAuthorizationRequest::class => MockResponse::make(['request_uri' => 'must-not-be-used']),
+        ]);
+
+        try {
+            (new MyinfoConnector)->generateAuthorizationUrl();
+            $this->fail('Expected incompatible discovery metadata to fail.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame(
+                'Singpass discovery is incompatible with the selected DPoP signing algorithm.',
+                $exception->getMessage(),
+            );
+        }
+
+        $mockClient->assertSentCount(1, GetSingpassOpenIdConfigurationRequest::class);
+        $mockClient->assertSentCount(0, PushedAuthorizationRequest::class);
     }
 
     public function test_generate_authorization_url_rejects_mismatched_discovery_issuer_before_par(): void
@@ -381,6 +528,7 @@ class MyinfoConnectorTest extends TestCase
             'token_endpoint' => 'https://stg-id.singpass.gov.sg/fapi/token',
             'userinfo_endpoint' => 'https://stg-id.singpass.gov.sg/fapi/userinfo',
             'jwks_uri' => 'https://stg-id.singpass.gov.sg/.well-known/keys',
+            'dpop_signing_alg_values_supported' => ['ES256', 'ES384', 'ES512'],
         ];
     }
 
@@ -446,5 +594,18 @@ class MyinfoConnectorTest extends TestCase
         }
 
         return base64_decode(strtr($value, '-_', '+/'), true) ?: '';
+    }
+
+    /**
+     * @return array{header: array<string, mixed>, payload: array<string, mixed>}
+     */
+    private function decodeDpopProof(string $proof): array
+    {
+        [$encodedHeader, $encodedPayload] = explode('.', $proof, 3);
+
+        return [
+            'header' => json_decode($this->decodeBase64Url($encodedHeader), true, 512, JSON_THROW_ON_ERROR),
+            'payload' => json_decode($this->decodeBase64Url($encodedPayload), true, 512, JSON_THROW_ON_ERROR),
+        ];
     }
 }

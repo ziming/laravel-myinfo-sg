@@ -15,6 +15,7 @@ return [
     'public_jwks' => env('MYINFO_V6_PUBLIC_JWKS'),
     'private_jwks' => env('MYINFO_V6_PRIVATE_JWKS'),
     'chosen_jwks_sig_kid' => env('MYINFO_V6_CHOSEN_JWKS_SIG_KID'),
+    'dpop_signing_alg' => env('MYINFO_V6_DPOP_SIGNING_ALG', 'ES256'),
 
     'state_session_key' => env('MYINFO_V6_STATE_SESSION_KEY', 'myinfo_v6_state'),
     'nonce_session_key' => env('MYINFO_V6_NONCE_SESSION_KEY', 'myinfo_v6_nonce'),
