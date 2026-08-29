@@ -47,6 +47,12 @@ class MyinfoConnector extends Connector
      */
     public function generateAuthorizationUrl(?string $redirectUri = null): string
     {
+        $stateSessionKey = config('laravel-myinfo-sg-v5.state_session_key');
+
+        if (! is_string($stateSessionKey) || $stateSessionKey === '') {
+            throw new RuntimeException('MyInfo V5 state session key is invalid.');
+        }
+
         $dpopSigningAlg = $this->configuredDpopSigningAlgorithm();
         $metadata = $this->getValidatedDiscoveryMetadata($dpopSigningAlg, false);
         $effectiveRedirectUri = $redirectUri ?? config('laravel-myinfo-sg-v5.redirect_uri');
@@ -97,7 +103,7 @@ class MyinfoConnector extends Connector
         }
 
         $this->transactionStore()->put($transaction);
-        session()->put(config('laravel-myinfo-sg-v5.state_session_key'), $transaction->state);
+        session()->put($stateSessionKey, $transaction->state);
 
         // Build the authorization URL with only client_id and request_uri
         $authorizationUrl = $metadata['authorization_endpoint'].'?'.http_build_query([

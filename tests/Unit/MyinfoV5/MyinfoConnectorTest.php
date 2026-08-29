@@ -266,6 +266,35 @@ class MyinfoConnectorTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function invalidStateSessionKeys(): iterable
+    {
+        yield 'missing key' => [null];
+        yield 'empty key' => [''];
+    }
+
+    #[DataProvider('invalidStateSessionKeys')]
+    public function test_invalid_state_session_key_fails_before_discovery_or_par(mixed $stateSessionKey): void
+    {
+        config()->set('laravel-myinfo-sg-v5.state_session_key', $stateSessionKey);
+        $mockClient = MockClient::global([
+            GetSingpassOpenIdConfigurationRequest::class => MockResponse::make($this->metadata()),
+            PushedAuthorizationRequest::class => MockResponse::make(['request_uri' => 'must-not-be-used']),
+        ]);
+
+        try {
+            (new MyinfoConnector)->generateAuthorizationUrl();
+            $this->fail('Expected the invalid state session key to fail.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('MyInfo V5 state session key is invalid.', $exception->getMessage());
+        }
+
+        $mockClient->assertSentCount(0, GetSingpassOpenIdConfigurationRequest::class);
+        $mockClient->assertSentCount(0, PushedAuthorizationRequest::class);
+    }
+
+    /**
      * @return iterable<string, array{array<string, mixed>}>
      */
     public static function incompatibleDpopMetadata(): iterable
