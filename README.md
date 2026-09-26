@@ -3,26 +3,40 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
 [![Total Downloads](https://img.shields.io/packagist/dt/ziming/laravel-myinfo-sg.svg?style=flat-square)](https://packagist.org/packages/ziming/laravel-myinfo-sg)
 
-A working PHP Laravel Package for MyInfo Singapore. With the annoying, 
-time wasting hidden quirks of implementing it in PHP figured out. 
+A Laravel package for integrating with Singapore's MyInfo through Singpass FAPI 2.0. It provides a
+session-backed authorization flow, verified identity and personal-data responses, and JWKS management commands.
 
-<a href="https://api.singpass.gov.sg/library/myinfo/v3/developers/overview" rel="noreferrer nofollow">Official MyInfo Docs</a>
+[Official Singpass documentation](https://docs.developer.singpass.gov.sg/docs)
 
-## Contributing
+## Contents
 
-A donation is always welcomed (currently $0), especially if you or your employer makes money with the help of my packages. Which I am aware of a couple.
+- [Requirements](#requirements)
+- [Supported integration](#supported-integration)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Redirect the user to Singpass](#redirect-the-user-to-singpass)
+- [Handle the callback](#handle-the-callback)
+- [Public JWKS endpoint](#public-jwks-endpoint)
+- [Errors and transport recovery](#errors-and-transport-recovery)
+- [Generate JWKS](#generate-jwks)
+- [Rotate JWKS](#rotate-jwks)
+- [Development](#development)
 
-## Myinfo v5 (FAPI 2.0)
+## Requirements
 
-This is the current Singpass Myinfo flow, the one built on FAPI 2.0. It lives under the
-`MyinfoV5` namespace and is configured through `laravel-myinfo-sg-v5`.
+- PHP 8.4 or later within the PHP 8.x series, with the GMP, JSON, and OpenSSL extensions.
+- Laravel 12 or 13.
+- A Singpass application with a client ID, registered redirect URI, approved scopes, and registered public JWKS.
+- A persistent Laravel session shared by the authorization and callback routes.
 
-> **A note on the version number.** Singpass shipped a Myinfo "v5" in 2025 and then shipped a
-> different, FAPI 2.0-based Myinfo in 2026 that they *also* call v5. This package supports the
-> 2026 FAPI 2.0 one. Earlier releases of this package carried the 2025 flow under `MyinfoV5` and
-> the FAPI 2.0 flow under `MyinfoV6`; the 2025 flow is no longer supported by Singpass and has
-> been removed, so `MyinfoV5` now means FAPI 2.0. If you are reading an older tag, the namespace
-> means the other thing.
+## Supported integration
+
+This guide covers the FAPI 2.0 implementation in the `MyinfoV5` namespace, configured through
+`laravel-myinfo-sg-v5`.
+
+> **Version naming:** In this checkout, `MyinfoV5` refers to the FAPI 2.0 integration. Earlier package
+> releases used `MyinfoV6` for this flow and `MyinfoV5` for the previous implementation. When using an
+> older release, consult the README shipped with that release; namespaces and configuration may differ.
 
 The connector handles these parts for you:
 
@@ -46,15 +60,33 @@ The flow is session-backed. Your authorization redirect route and callback route
 - the session-scoped DPoP key
 - the effective redirect URI
 
-### Publish Config
+## Installation
+
+```bash
+composer require ziming/laravel-myinfo-sg
+```
+
+Laravel discovers the service provider automatically. Publish the package configuration:
 
 ```bash
 php artisan vendor:publish --provider="Ziming\LaravelMyinfoSg\LaravelMyinfoSgServiceProvider" --tag="myinfo-sg-config"
 ```
 
-### Example `.env`
+The FAPI 2.0 integration uses `config/laravel-myinfo-sg-v5.php`.
 
-```.dotenv
+## Configuration
+
+Set your Singpass application's client ID, registered callback URI, and approved scopes. Scopes are
+space-separated; include `openid` and the MyInfo scopes approved for your application. The example uses
+the package's staging issuer default.
+
+Generate your keys using [Generate JWKS](#generate-jwks), then replace both JWKS placeholders below with
+the complete JSON contents of the generated files. These settings accept JSON strings, not file paths.
+Register the matching public JWKS or its public URL in your Singpass app configuration.
+
+### Environment variables
+
+```dotenv
 MYINFO_V5_ISSUER_URI=https://stg-id.singpass.gov.sg
 
 MYINFO_V5_CLIENT_ID=your-client-id
@@ -89,7 +121,166 @@ MYINFO_V5_PUBLIC_JWKS_URI=/myinfo/v5/jwks
 MYINFO_V5_DEBUG_MODE=false
 ```
 
-### Transport Recovery
+After changing environment values in a deployment that caches configuration, rebuild the cache with
+`php artisan config:cache`. The generated key files are not loaded automatically by the package.
+
+## Redirect the user to Singpass
+
+Enable `MYINFO_V5_ENABLE_DEFAULT_AUTHORIZATION_REDIRECT_ROUTE=true` to use the package's
+`POST /redirect-to-singpass-v5` route. Submit a Blade form with a CSRF token:
+
+```blade
+<form method="POST" action="{{ route('myinfo-v5.singpass') }}">
+    @csrf
+    <button type="submit">Continue with Singpass</button>
+</form>
+```
+
+The route accepts POST requests, so a normal hyperlink or HTTP redirect to it will not work.
+
+That route uses `Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV5\CallAuthorizationApiController` internally.
+
+For a custom controller or route in `routes/web.php`, use the connector directly:
+
+```php
+<?php
+
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\MyinfoConnector;
+
+$myinfoConnector = new MyinfoConnector;
+
+return redirect()->to(
+    $myinfoConnector->generateAuthorizationUrl()
+);
+```
+
+If you need to override the redirect URI for this request only:
+
+```php
+<?php
+
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\MyinfoConnector;
+
+$myinfoConnector = new MyinfoConnector;
+
+return redirect()->to(
+    $myinfoConnector->generateAuthorizationUrl(
+        'https://your-app.test/callback/myinfo-v5'
+    )
+);
+```
+
+The package stores each authorization attempt as a separate, session-bound transaction for 10 minutes
+by default. Adjust `transaction_ttl_seconds` in `config/laravel-myinfo-sg-v5.php` if needed.
+That means starting another authorization in a second tab does not overwrite the first tab's state,
+PKCE verifier, redirect URI, nonce, issuer, or DPoP key.
+
+## Handle the callback
+
+Define your own callback route in `routes/web.php`, matching `MYINFO_V5_REDIRECT_URI`. Use `completeAuthorization()` followed by
+`getVerifiedUserInfo()` as the secure completion flow. It validates and consumes the transaction-scoped
+`state`, compares callback `iss` exactly, exchanges the code with that transaction's PKCE and DPoP
+context, and verifies the ID token. The UserInfo request then reuses that same transaction DPoP key,
+includes the access-token hash in `ath`, verifies the response, and requires its `sub` to match the
+verified ID-token subject.
+
+```php
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\MyinfoConnector;
+
+Route::get('/callback/myinfo-v5', function (Request $request) {
+    $myinfoConnector = new MyinfoConnector;
+    $tokenSet = $myinfoConnector->completeAuthorization($request);
+    $userInfo = $myinfoConnector->getVerifiedUserInfo($tokenSet);
+
+    return response()->json($userInfo->personInfo());
+});
+```
+
+Routes in `routes/web.php` already receive Laravel's `web` middleware. If you register these routes
+elsewhere, apply it to both the authorization and callback routes so they share the same session.
+The JSON response above is a minimal example; use `personInfo()` in your application's own workflow.
+
+### Verified responses
+
+The returned `VerifiedTokenSet` exposes the access token through `accessToken()`, the verified ID-token
+claims through `claims()`, the trusted subject through `subject()`, and the exact `DPoP` token type through
+`tokenType()`. Its access token and transaction-bound private DPoP key are excluded from debug and JSON
+output, and the object cannot be serialized.
+
+`getVerifiedUserInfo()` returns a `VerifiedUserInfo` DTO. Its `claims()` method exposes the full verified
+claim set, `subject()` exposes the subject that was matched to the ID token, and `personInfo()` returns the
+typed `person_info` array. UserInfo requires `person_info`, `iss`, `iat`, `sub`, and `aud`. Its `exp` claim
+is optional, but is validated when present.
+
+The authorization `nonce` is verified only in the ID token. UserInfo does not carry or require a nonce;
+it is bound to the authenticated session by matching its `sub` to the verified ID-token subject. Time-based
+ID-token and UserInfo checks use a fixed two-second clock-skew allowance. Beyond that allowance, the current
+time must be before any applicable `exp`, and `iat` must not be in the future.
+
+### Low-level compatibility methods
+
+`getAccessToken(string $code)` and `getAccessTokenFromValidatedCallback()` remain available as low-level
+compatibility methods. They return raw, unverified token-endpoint data. The string-only method also cannot
+validate callback `state` or `iss`. Do not treat either result as authenticated or use either method as the
+primary callback path in new integrations.
+
+`getUser(string $accessToken)` is also a low-level compatibility method. It verifies the UserInfo signature
+and required claim shapes through the shared processor, but a bare access-token string cannot prove that its
+UserInfo `sub` matches a verified ID token. Use `getVerifiedUserInfo($tokenSet)` for subject-bound data.
+
+## Public JWKS endpoint
+
+Set `MYINFO_V5_ENABLE_DEFAULT_PUBLIC_JWKS_ENDPOINT_ROUTE=true` to expose `GET /myinfo/v5/jwks`:
+
+- `route('myinfo-v5.public-jwks')`
+
+That route uses `Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV5\PublicJwksController` and returns the value from `MYINFO_V5_PUBLIC_JWKS`.
+
+The endpoint validates this configuration before building a response. It fails closed if the public JWKS
+contains private `d` material, duplicate key IDs, unsupported algorithms or curves, or does not contain at
+least one signing key and one encryption key. It never repairs a private JWKS by silently removing `d`.
+
+If private key material may already have been served from this endpoint, rotate every affected signing or
+encryption key and update the registered public JWKS. Correcting `MYINFO_V5_PUBLIC_JWKS` alone is not
+sufficient because the exposed private key must be treated as compromised.
+
+If you prefer to register the routes yourself:
+
+```php
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV5\CallAuthorizationApiController;
+use Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV5\PublicJwksController;
+
+Route::post('/redirect-to-singpass-v5', CallAuthorizationApiController::class)
+    ->name('myinfo-v5.singpass')
+    ->middleware('web');
+
+Route::get('/myinfo/v5/jwks', PublicJwksController::class)
+    ->name('myinfo-v5.public-jwks');
+```
+
+## Errors and transport recovery
+
+Handle callback and verification errors in your application's exception handler or callback controller:
+
+| Exception in `Ziming\LaravelMyinfoSg\Exceptions\MyinfoV5` | Meaning |
+| --- | --- |
+| `AuthorizationResponseException` | Singpass returned an authorization error; `errorCode` contains the provider error code. |
+| `InvalidAuthorizationCallbackException` | Callback validation failed, for example because state expired or the issuer did not match. |
+| `InvalidIdTokenException` | ID-token decryption or verification failed. |
+| `InvalidUserInfoException` | UserInfo decryption, verification, or subject binding failed. |
+| `MyinfoV5TransportException` | A connection failed or a retryable response exhausted the allowed attempts. |
+
+Do not continue with personal data after verification fails. For an expired or consumed authorization
+transaction, offer the user a new authorization attempt through the POST form above.
+
+### Timeouts and retries
 
 Every request uses the configured connection and overall request timeouts. Safe-read attempts are total
 attempts, including the first request, and must be between 1 and 3. The retry delay must be between 0 and
@@ -108,18 +299,23 @@ Connection failures and exhausted retryable responses throw
 safe endpoint category, and `restartAuthorization()` tells the application how to recover. When
 `restartAuthorization()` is `true`, the authorization outcome is ambiguous: discard that attempted flow
 and start a new authorization. Never replay its old authorization code, client assertion, or DPoP proof.
-When it is `false`, an application may retry the operation later with the retained `VerifiedTokenSet`; the
-package will generate a new UserInfo DPoP proof.
+When it is `false` and you already have a `VerifiedTokenSet`, you may retry UserInfo using that object
+within the current request; the package will generate a new DPoP proof. The token set cannot be serialized
+into a session or queued job. Do not retry `completeAuthorization()` with an already consumed callback.
 
 ```php
 use Ziming\LaravelMyinfoSg\Exceptions\MyinfoV5\MyinfoV5TransportException;
+use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\MyinfoConnector;
+
+$myinfoConnector = new MyinfoConnector;
 
 try {
     $tokenSet = $myinfoConnector->completeAuthorization($request);
     $userInfo = $myinfoConnector->getVerifiedUserInfo($tokenSet);
 } catch (MyinfoV5TransportException $exception) {
     if ($exception->restartAuthorization()) {
-        return redirect()->route('myinfo-v5.singpass');
+        // Offer a new authorization attempt using the POST form in your UI.
+        return response()->json(['message' => 'Please start Singpass authorization again.'], 503);
     }
 
     return response()->json(['message' => 'Singpass is temporarily unavailable.'], 503);
@@ -131,7 +327,7 @@ verification finds an unknown signing key or a bad signature, the package invali
 JWKS and refreshes it exactly once before returning the existing sanitized invalid-token error. Decryption,
 algorithm, nonce, claim, and subject failures do not trigger a JWKS refresh.
 
-### Generate JWKS
+## Generate JWKS
 
 Generate the initial signing and encryption key pairs with:
 
@@ -173,28 +369,6 @@ Supported encryption algorithms are `ECDH-ES+A128KW` (default), `ECDH-ES+A192KW`
 `ECDH-ES+A256KW`. Each can be used with `P-256` (default), `P-384`, or `P-521`, as permitted by the
 [Singpass JWKS requirements](https://docs.developer.singpass.gov.sg/docs/technical-specifications/technical-concepts/json-web-key-sets-jwks).
 
-#### Select the DPoP signing profile
-
-`MYINFO_V5_DPOP_SIGNING_ALG` independently selects the algorithm for the ephemeral DPoP key. It does
-not select the registered client-assertion key controlled by `MYINFO_V5_CHOSEN_JWKS_SIG_KID`.
-
-| DPoP algorithm | Required curve |
-| --- | --- |
-| `ES256` (default) | `P-256` |
-| `ES384` | `P-384` |
-| `ES512` | `P-521` |
-
-The algorithm determines the curve; there is no separate DPoP curve setting. Discovery metadata may
-reject the selected local profile but cannot enable any profile outside this table.
-
-The package generates a fresh ephemeral DPoP private key for every authorization transaction. That exact
-key and algorithm are retained for the transaction and reused across PAR, token exchange, and UserInfo,
-even if configuration changes after PAR. Every HTTP request still receives a newly signed proof with a
-fresh `jti`; only the UserInfo proof includes the access-token hash in `ath`. DPoP keys are never reused
-between transactions.
-
-When working directly in this package repository, replace `php artisan` with `vendor/bin/testbench`.
-
 The private file is created with owner-only permissions (`0600`). Keep it outside the public web root and
 store its contents in `MYINFO_V5_PRIVATE_JWKS` or an appropriate secrets manager. The public file contains
 matching public keys without the private `d` property and can be used for `MYINFO_V5_PUBLIC_JWKS` or the
@@ -215,7 +389,27 @@ php artisan myinfo:validate-jwks \
     --signing-kid="$MYINFO_V5_CHOSEN_JWKS_SIG_KID"
 ```
 
-#### Rotate JWKS
+### Select the DPoP signing profile
+
+`MYINFO_V5_DPOP_SIGNING_ALG` independently selects the algorithm for the ephemeral DPoP key. It does
+not select the registered client-assertion key controlled by `MYINFO_V5_CHOSEN_JWKS_SIG_KID`.
+
+| DPoP algorithm | Required curve |
+| --- | --- |
+| `ES256` (default) | `P-256` |
+| `ES384` | `P-384` |
+| `ES512` | `P-521` |
+
+The algorithm determines the curve; there is no separate DPoP curve setting. Discovery metadata may
+reject the selected local profile but cannot enable any profile outside this table.
+
+The package generates a fresh ephemeral DPoP private key for every authorization transaction. That exact
+key and algorithm are retained for the transaction and reused across PAR, token exchange, and UserInfo,
+even if configuration changes after PAR. Every HTTP request still receives a newly signed proof with a
+fresh `jti`; only the UserInfo proof includes the access-token hash in `ath`. DPoP keys are never reused
+between transactions.
+
+## Rotate JWKS
 
 Rotate signing and encryption keys at least annually. The guided rotation command always reads a complete,
 validated pair and creates new complete JWKS files at distinct paths; it never overwrites its inputs.
@@ -295,325 +489,18 @@ The required state transitions are:
 - Encryption: retain old+new private keys, publish the new public key, wait one hour, then retire the old
   private key.
 
-### Redirect The User To Singpass
+## Development
 
-If you enable the default authorization redirect route, you may point your button or form action at:
-
-- `route('myinfo-v5.singpass')`
-
-That route uses `Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV5\CallAuthorizationApiController` internally.
-
-If you prefer to do it yourself, use the connector directly:
-
-```php
-<?php
-
-use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\MyinfoConnector;
-
-$myinfoConnector = new MyinfoConnector;
-
-return redirect()->to(
-    $myinfoConnector->generateAuthorizationUrl()
-);
-```
-
-If you need to override the redirect URI for this request only:
-
-```php
-<?php
-
-use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\MyinfoConnector;
-
-$myinfoConnector = new MyinfoConnector;
-
-return redirect()->to(
-    $myinfoConnector->generateAuthorizationUrl(
-        'https://your-app.test/callback/myinfo-v5'
-    )
-);
-```
-
-The package stores each authorization attempt as a separate, session-bound transaction for 10 minutes.
-That means starting another authorization in a second tab does not overwrite the first tab's state,
-PKCE verifier, redirect URI, nonce, issuer, or DPoP key.
-
-### Handle The Callback
-
-You still need to define your own callback route. Use `completeAuthorization()` followed by
-`getVerifiedUserInfo()` as the secure completion flow. It validates and consumes the transaction-scoped
-`state`, compares callback `iss` exactly, exchanges the code with that transaction's PKCE and DPoP
-context, and verifies the ID token. The UserInfo request then reuses that same transaction DPoP key,
-includes the access-token hash in `ath`, verifies the response, and requires its `sub` to match the
-verified ID-token subject.
-
-```php
-<?php
-
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use Ziming\LaravelMyinfoSg\Http\Integrations\MyinfoV5\MyinfoConnector;
-
-Route::get('/callback/myinfo-v5', function (Request $request) {
-    $myinfoConnector = new MyinfoConnector;
-    $tokenSet = $myinfoConnector->completeAuthorization($request);
-    $userInfo = $myinfoConnector->getVerifiedUserInfo($tokenSet);
-
-    return response()->json($userInfo->personInfo());
-})->middleware('web');
-```
-
-The returned `VerifiedTokenSet` exposes the access token through `accessToken()`, the verified ID-token
-claims through `claims()`, the trusted subject through `subject()`, and the exact `DPoP` token type through
-`tokenType()`. Its access token and transaction-bound private DPoP key are excluded from debug and JSON
-output, and the object cannot be serialized.
-
-`getVerifiedUserInfo()` returns a `VerifiedUserInfo` DTO. Its `claims()` method exposes the full verified
-claim set, `subject()` exposes the subject that was matched to the ID token, and `personInfo()` returns the
-typed `person_info` array. UserInfo requires `person_info`, `iss`, `iat`, `sub`, and `aud`. Its `exp` claim
-is optional, but is validated when present.
-
-The authorization `nonce` is verified only in the ID token. UserInfo does not carry or require a nonce;
-it is bound to the authenticated session by matching its `sub` to the verified ID-token subject. Time-based
-ID-token and UserInfo checks use a fixed two-second clock-skew allowance. Beyond that allowance, the current
-time must be before any applicable `exp`, and `iat` must not be in the future.
-
-`getAccessToken(string $code)` and `getAccessTokenFromValidatedCallback()` remain available as low-level
-compatibility methods. They return raw, unverified token-endpoint data. The string-only method also cannot
-validate callback `state` or `iss`. Do not treat either result as authenticated or use either method as the
-primary callback path in new integrations.
-
-`getUser(string $accessToken)` is also a low-level compatibility method. It verifies the UserInfo signature
-and required claim shapes through the shared processor, but a bare access-token string cannot prove that its
-UserInfo `sub` matches a verified ID token. Use `getVerifiedUserInfo($tokenSet)` for subject-bound data.
-
-### Public JWKS Endpoint
-
-If you enable the default public JWKS route, the package will expose:
-
-- `route('myinfo-v5.public-jwks')`
-
-That route uses `Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV5\PublicJwksController` and returns the value from `MYINFO_V5_PUBLIC_JWKS`.
-
-The endpoint validates this configuration before building a response. It fails closed if the public JWKS
-contains private `d` material, duplicate key IDs, unsupported algorithms or curves, or does not contain at
-least one signing key and one encryption key. It never repairs a private JWKS by silently removing `d`.
-
-If private key material may already have been served from this endpoint, rotate every affected signing or
-encryption key and update the registered public JWKS. Correcting `MYINFO_V5_PUBLIC_JWKS` alone is not
-sufficient because the exposed private key must be treated as compromised.
-
-If you prefer to register the routes yourself:
-
-```php
-<?php
-
-use Illuminate\Support\Facades\Route;
-use Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV5\CallAuthorizationApiController;
-use Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV5\PublicJwksController;
-
-Route::post('/redirect-to-singpass-v5', CallAuthorizationApiController::class)
-    ->name('myinfo-v5.singpass')
-    ->middleware('web');
-
-Route::get('/myinfo/v5/jwks', PublicJwksController::class)
-    ->name('myinfo-v5.public-jwks');
-```
-
-### Notes
-
-- `MYINFO_V5_PRIVATE_JWKS` should be the full private JWKS.
-- `MYINFO_V5_PUBLIC_JWKS` should be the matching public JWKS registered with Singpass.
-- `MYINFO_V5_CHOSEN_JWKS_SIG_KID` should point at the signing key used for client assertions.
-- The package generates a fresh ephemeral DPoP key per authorization transaction. You configure only its
-  algorithm with `MYINFO_V5_DPOP_SIGNING_ALG`, never the key material itself.
-- Authorization transactions are stored in the user's Laravel session under `transaction_session_key`
-  and expire after `transaction_ttl_seconds` (600 seconds by default).
-
-## Installation (v3 instructions)
-
-You can install the package via composer:
+From the package repository:
 
 ```bash
-composer require ziming/laravel-myinfo-sg
+composer install
+composer test
+composer analyse
 ```
 
-Followed by adding the following variables to your `.env` file. 
+Use `vendor/bin/testbench` instead of `php artisan` when running the package's JWKS commands directly
+from this repository.
 
-The values provided below are the ones provided in the official MyInfo nodejs tutorial. 
-
-Change them to the values you are given for your app.
-
-```.dotenv
-MYINFO_APP_CLIENT_ID=STG2-MYINFO-SELF-TEST
-MYINFO_APP_CLIENT_SECRET=44d953c796cccebcec9bdc826852857ab412fbe2
-MYINFO_APP_REDIRECT_URL=http://localhost:3001/callback
-MYINFO_APP_PURPOSE="demonstrating MyInfo APIs"
-MYINFO_APP_ATTRIBUTES=uinfin,name,sex,race,nationality,dob,email,mobileno,regadd,housingtype,hdbtype,marital,noa-basic,ownerprivate,cpfcontributions,cpfbalances
-
-MYINFO_APP_SIGNATURE_CERT_PRIVATE_KEY=file:///Users/your-username/your-laravel-app/storage/myinfo-ssl/stg-demoapp-client-privatekey-2018.pem
-MYINFO_SIGNATURE_CERT_PUBLIC_CERT=file:///Users/your-username/your-laravel-app/storage/myinfo-ssl/staging_myinfo_public_cert.cer
-
-MYINFO_DEBUG_MODE=false
-
-# SANDBOX ENVIRONMENT (no PKI digital signature)
-MYINFO_AUTH_LEVEL=L0
-MYINFO_API_AUTHORISE=https://sandbox.api.myinfo.gov.sg/com/v3/authorise
-MYINFO_API_TOKEN=https://sandbox.api.myinfo.gov.sg/com/v3/token
-MYINFO_API_PERSON=https://sandbox.api.myinfo.gov.sg/com/v3/person
-
-# TEST ENVIRONMENT (with PKI digital signature)
-#MYINFO_AUTH_LEVEL=L2
-#MYINFO_API_AUTHORISE=https://test.api.myinfo.gov.sg/com/v3/authorise
-#MYINFO_API_TOKEN=https://test.api.myinfo.gov.sg/com/v3/token
-#MYINFO_API_PERSON=https://test.api.myinfo.gov.sg/com/v3/person
-
-# Controller URI Paths. IMPORTANT
-MYINFO_CALL_AUTHORISE_API_URL=/redirect-to-singpass
-MYINFO_GET_PERSON_DATA_URL=/myinfo-person
-```
-
-Lastly, publish the config file
-
-```bash
-php artisan vendor:publish --provider="Ziming\LaravelMyinfoSg\LaravelMyinfoSgServiceProvider" --tag="myinfo-sg-config"
-```
-
-You may also wish to publish the MyInfo official nodejs demo app ssl files as well to storage/myinfo-ssl. 
-You should replace these in your production environment.
-
-```bash
-php artisan vendor:publish --provider="Ziming\LaravelMyinfoSg\LaravelMyinfoSgServiceProvider" --tag="myinfo-ssl"
-```
-
-## Usage and Customisations
-
-When building your button to redirect to SingPass. It should link to `route('myinfo.singpass')`
-
-After SingPass redirects back to your Callback URI, you should make a post request to `route('myinfo.person')`
-
-If you prefer to not use the default routes provided you may set `enable_default_myinfo_routes` to `false` in 
-`config/laravel-myinfo-sg.php` and map your own routes. This package controllers will still be accessible as shown
-in the example below:
-
-```php
-<?php
-use Ziming\LaravelMyinfoSg\Http\Controllers\CallAuthoriseApiController;
-use Ziming\LaravelMyinfoSg\Http\Controllers\GetMyinfoPersonDataController;
-use Illuminate\Support\Facades\Route;
-
-Route::post('/go-singpass'), CallAuthoriseApiController::class)
-->name('myinfo.singpass')
-->middleware('web');
-
-Route::post('/fetch-myinfo-person-data', GetMyinfoPersonDataController::class)
-->name('myinfo.person');
-```
-
-During the entire execution, some exceptions may be thrown. If you do not like the format of the json responses.
-You can customise it by intercepting them in your laravel application `app/Exceptions/Handler.php`
-
-An example is shown below:
-
-```php
-<?php
-
-namespace App\Exceptions;
-
-use Exception;
-use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Ziming\LaravelMyinfoSg\Exceptions\AccessTokenNotFoundException;
-
-class Handler extends ExceptionHandler
-{
-    /**
-     * A list of the exception types that are not reported.
-     *
-     * @var array
-     */
-    protected $dontReport = [
-        // You may wish to add all the Exceptions thrown by this package. See src/Exceptions folder
-    ];
-
-    /**
-     * A list of the inputs that are never flashed for validation exceptions.
-     *
-     * @var array
-     */
-    protected $dontFlash = [
-        'password',
-        'password_confirmation',
-    ];
-
-    /**
-     * Report or log an exception.
-     *
-     * @param  \Throwable  $exception
-     * @return void
-     */
-    public function report(\Throwable $exception)
-    {
-        parent::report($exception);
-    }
-
-    /**
-     * Render an exception into an HTTP response.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Throwable  $exception
-     * @return \Illuminate\Http\Response
-     */
-    public function render($request, \Throwable $exception)
-    {
-        // Example of an override. You may override it via Service Container binding too
-        if ($exception instanceof AccessTokenNotFoundException && $request->wantsJson()) {
-            return response()->json([
-                'message' => 'Access Token is missing'
-            ], 404);
-        }
-        
-        return parent::render($request, $exception);
-    }
-}
-```
-
-The list of exceptions are as follows
-
-```php
-<?php
-use Ziming\LaravelMyinfoSg\Exceptions\AccessTokenNotFoundException;
-use Ziming\LaravelMyinfoSg\Exceptions\InvalidAccessTokenException;
-use Ziming\LaravelMyinfoSg\Exceptions\InvalidDataOrSignatureForPersonDataException;
-use Ziming\LaravelMyinfoSg\Exceptions\InvalidStateException;
-use Ziming\LaravelMyinfoSg\Exceptions\MyinfoPersonDataNotFoundException;
-use Ziming\LaravelMyinfoSg\Exceptions\SubNotFoundException;
-```
-
-Lastly, if you prefer to write your own controllers, you may make use of `LaravelMyinfoSgFacade` or `LaravelMyinfoSg` to generate the
-authorisation api uri (The redirect to Singpass link) and to fetch MyInfo Person Data. Examples are shown below
-
-```php
-<?php
-
-use Ziming\LaravelMyinfoSg\LaravelMyinfoSgFacade as LaravelMyinfoSg;
-
-// Get the Singpass URI and redirect to there
-return redirect(LaravelMyinfoSg::generateAuthoriseApiUrl($state));
-```
-
-```php
-<?php
-use Ziming\LaravelMyinfoSg\LaravelMyinfoSgFacade as LaravelMyinfoSg;
-
-// Get the Myinfo person data in an array with 'data' key
-$personData = LaravelMyinfoSg::getMyinfoPersonData($code);
-
-// If you didn't want to return a json response with the person information in the 'data' key. You can do this
-return response()->json($personData['data']);
-```
-
-You may also choose to subclass `GetMyinfoPersonDataController` and override its `preResponseHook()` template method to
-do logging or other stuffs before returning the person data.
-
-### Changelog
-
-Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
+Contributions are welcome. See [CONTRIBUTING](CONTRIBUTING.md) for contribution guidelines and
+[CHANGELOG](CHANGELOG.md) for release history.
