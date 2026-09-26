@@ -35,7 +35,7 @@ class RouteRegistrationTest extends TestCase
         $route = Route::getRoutes()->getByName('myinfo-v5.public-jwks');
 
         $this->assertNotNull($route);
-        $this->assertSame('sp/v5/jwks', $route->uri());
+        $this->assertSame('myinfo/v5/jwks', $route->uri());
         $this->assertContains('GET', $route->methods());
         $this->assertSame(PublicJwksController::class, $route->getActionName());
     }

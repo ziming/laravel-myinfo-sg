@@ -37,7 +37,7 @@ return [
     'call_authorization_api_controller' => env('MYINFO_V5_CALL_AUTHORIZATION_API_CONTROLLER', \Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV5\CallAuthorizationApiController::class),
 
     'enable_default_public_jwks_endpoint_route' => env('MYINFO_V5_ENABLE_DEFAULT_PUBLIC_JWKS_ENDPOINT_ROUTE', false),
-    'public_jwks_uri' => env('MYINFO_V5_PUBLIC_JWKS_URI', '/sp/v5/jwks'),
+    'public_jwks_uri' => env('MYINFO_V5_PUBLIC_JWKS_URI', '/myinfo/v5/jwks'),
     'public_jwks_controller' => env('MYINFO_V5_PUBLIC_JWKS_CONTROLLER', \Ziming\LaravelMyinfoSg\Http\Controllers\MyinfoV5\PublicJwksController::class),
 
     'debug_mode' => env('MYINFO_V5_DEBUG_MODE', false),

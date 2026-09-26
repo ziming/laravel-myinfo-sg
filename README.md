@@ -84,7 +84,7 @@ MYINFO_V5_ENABLE_DEFAULT_AUTHORIZATION_REDIRECT_ROUTE=false
 MYINFO_V5_CALL_AUTHORIZATION_API_URI=/redirect-to-singpass-v5
 
 MYINFO_V5_ENABLE_DEFAULT_PUBLIC_JWKS_ENDPOINT_ROUTE=false
-MYINFO_V5_PUBLIC_JWKS_URI=/sp/v5/jwks
+MYINFO_V5_PUBLIC_JWKS_URI=/myinfo/v5/jwks
 
 MYINFO_V5_DEBUG_MODE=false
 ```
@@ -415,7 +415,7 @@ Route::post('/redirect-to-singpass-v5', CallAuthorizationApiController::class)
     ->name('myinfo-v5.singpass')
     ->middleware('web');
 
-Route::get('/sp/v5/jwks', PublicJwksController::class)
+Route::get('/myinfo/v5/jwks', PublicJwksController::class)
     ->name('myinfo-v5.public-jwks');
 ```
 
