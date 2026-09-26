@@ -5,3 +5,6 @@ vendor
 coverage
 .idea
 .phpunit.cache
+plans
+agent-native.json
+.agent-native

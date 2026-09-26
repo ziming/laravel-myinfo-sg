@@ -34,3 +34,4 @@ if (config('laravel-myinfo-sg-v5.enable_default_public_jwks_endpoint_route')) {
     )
         ->name('myinfo-v5.public-jwks');
 }
+

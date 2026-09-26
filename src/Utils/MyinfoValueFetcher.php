@@ -10,9 +10,9 @@ use Illuminate\Support\Arr;
  * This class is for my own use for now, I will not care about making breaking changes.
  * You have been warned.
  */
-final class MyinfoValueFetcher
+class MyinfoValueFetcher
 {
-    private function __construct(private array $myinfoData)
+    protected function __construct(private array $myinfoData)
     {
     }
 
@@ -23,7 +23,7 @@ final class MyinfoValueFetcher
 
     public function isNotEmpty(): bool
     {
-        return is_array($this->myinfoData);
+        return $this->myinfoData !== [];
     }
 
     public function uinfin(string $key = 'value'): ?string
@@ -451,22 +451,30 @@ final class MyinfoValueFetcher
 
     public function cpfHousingWithdrawalsRowAccruedInterestAmt(int $index): ?float
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.accruedinterestamt.value") ?: null;
+        $amount = Arr::get($this->cpfHousingWithdrawals(), "{$index}.accruedinterestamt.value");
+
+        return is_numeric($amount) ? (float) $amount : null;
     }
 
     public function cpfHousingWithdrawalsRowMonthlyInstalmentAmt(int $index): ?float
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.monthlyinstalmentamt.value") ?: null;
+        $amount = Arr::get($this->cpfHousingWithdrawals(), "{$index}.monthlyinstalmentamt.value");
+
+        return is_numeric($amount) ? (float) $amount : null;
     }
 
     public function cpfHousingWithdrawalsRowPrincipalWithdrawalAmt(int $index): ?float
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.principalwithdrawalamt.value") ?: null;
+        $amount = Arr::get($this->cpfHousingWithdrawals(), "{$index}.principalwithdrawalamt.value");
+
+        return is_numeric($amount) ? (float) $amount : null;
     }
 
     public function cpfHousingWithdrawalsRowTotalAmountOfCpfAllowedForProperty(int $index): ?float
     {
-        return Arr::get($this->cpfHousingWithdrawals(), "{$index}.totalamountofcpfallowedforproperty.value") ?: null;
+        $amount = Arr::get($this->cpfHousingWithdrawals(), "{$index}.totalamountofcpfallowedforproperty.value");
+
+        return is_numeric($amount) ? (float) $amount : null;
     }
 
     public function childrenBirthRecords(): array
