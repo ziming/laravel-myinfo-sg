@@ -15,7 +15,7 @@
         }
     ],
     "require": {
-        "php": "^8.4",
+        "php": "^8.4.27 || ^8.5.12",
         "ext-gmp": "*",
         "ext-json": "*",
         "ext-openssl": "*",
